@@ -40,7 +40,8 @@ def detail(id):
         'category': exp.category.value, 'location': exp.location,
         'itinerary': exp.itinerary, 'photos': exp.photos.split(',') if exp.photos else [],
         'available_dates': exp.available_dates.split(',') if exp.available_dates else [],  # Parse as needed
-        'guide': {'name': exp.guide.profile.name, 'bio': exp.guide.profile.bio, 'location': exp.guide.profile.location}
+        'guide': {'name': exp.guide.profile.name, 'bio': exp.guide.profile.bio, 'location': exp.guide.profile.location},
+        'reviews': [{'rating': r.rating, 'comment': r.comment} for r in self.reviews]
     })
 
 @bp.route('/', methods=['POST'])
