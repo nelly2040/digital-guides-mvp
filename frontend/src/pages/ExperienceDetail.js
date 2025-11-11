@@ -7,7 +7,7 @@ const ExperienceDetail = () => {
   const { id } = useParams();
   const [exp, setExp] = useState(null);
   const navigate = useNavigate();
-  const { isAuthenticated, jwtToken } = useAuth();
+  const { isAuthenticated, loginWithRedirect } = useAuth();
 
   useEffect(() => {
     getExperience(id).then(res => setExp(res.data));
