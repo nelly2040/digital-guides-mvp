@@ -7,7 +7,6 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const { isAuthenticated, user, getAccessTokenSilently, loginWithRedirect, logout } = useAuth0();
-  const [jwtToken, setJwtToken] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +17,6 @@ export const AuthProvider = ({ children }) => {
           const idToken = await getAccessTokenSilently();
           const res = await axios.post('http://localhost:5000/api/auth/verify', { id_token: idToken });
           localStorage.setItem('jwt_token', res.data.access_token);
-          setJwtToken(res.data.access_token);
           setRole(res.data.user.role);
         } catch (error) {
           console.error('Auth error:', error);
