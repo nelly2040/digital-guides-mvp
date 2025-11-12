@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Auth0Provider } from '@auth0/auth0-react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { CurrencyProvider } from './hooks/useCurrency';
 import Header from './components/Header';
 import Homepage from './pages/Homepage';
 import Experiences from './pages/Experiences';
@@ -10,23 +10,31 @@ import Booking from './pages/Booking';
 import GuideDashboard from './pages/GuideDashboard';
 import CreateExperience from './pages/CreateExperience';
 import AdminPanel from './pages/AdminPanel';
+import SafariCalculator from './pages/SafariCalculator';
 import './index.css';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const { role, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/" />;
-  if (requiredRole && role !== requiredRole) return <Navigate to="/" />;
+  if (requiredRole && user.role !== requiredRole) return <Navigate to="/" />;
   return children;
 };
 
 function AppContent() {
+  const { checkAuth } = useAuth();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
       <Routes>
         <Route path="/" element={<Homepage />} />
         <Route path="/experiences" element={<Experiences />} />
         <Route path="/experiences/:id" element={<ExperienceDetail />} />
+        <Route path="/safari-calculator" element={<SafariCalculator />} />
         <Route path="/experiences/:id/book" element={
           <ProtectedRoute>
             <Booking />
@@ -54,20 +62,13 @@ function AppContent() {
 
 function App() {
   return (
-    <Auth0Provider
-      domain={process.env.REACT_APP_AUTH0_DOMAIN}
-      clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
-      authorizationParams={{
-        redirect_uri: window.location.origin,
-        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-      }}
-    >
-      <AuthProvider>
+    <AuthProvider>
+      <CurrencyProvider>
         <Router>
           <AppContent />
         </Router>
-      </AuthProvider>
-    </Auth0Provider>
+      </CurrencyProvider>
+    </AuthProvider>
   );
 }
 

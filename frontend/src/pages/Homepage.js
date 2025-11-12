@@ -36,6 +36,11 @@ const Homepage = () => {
       icon: '🛡️',
       title: 'Vetted & Verified',
       description: 'Every guide is carefully vetted to ensure quality, safety, and authentic cultural experiences.'
+    },
+    {
+      icon: '🧮',
+      title: 'Safari Cost Calculator',
+      description: 'Use our interactive calculator to plan your safari budget and find the perfect experience for your needs.'
     }
   ];
 

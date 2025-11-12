@@ -1,46 +1,98 @@
-import { createContext, useContext } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const { isAuthenticated, user, getAccessTokenSilently, loginWithRedirect, logout } = useAuth0();
-  const [role, setRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (isAuthenticated && user) {
-        try {
-          const idToken = await getAccessTokenSilently();
-          const res = await axios.post('http://localhost:5000/api/auth/verify', { id_token: idToken });
-          localStorage.setItem('jwt_token', res.data.access_token);
-          setRole(res.data.user.role);
-        } catch (error) {
-          console.error('Auth error:', error);
-        }
-      }
+  const login = async (email, password) => {
+    setLoading(true);
+    try {
+      const response = await axios.post('http://localhost:5000/api/auth/login', {
+        email,
+        password
+      });
+      
+      localStorage.setItem('jwt_token', response.data.access_token);
+      setUser(response.data.user);
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.error || 'Login failed' 
+      };
+    } finally {
       setLoading(false);
-    };
-    fetchUser();
-  }, [isAuthenticated, user, getAccessTokenSilently]);
-
-  const value = {
-    isAuthenticated,
-    user,
-    role,
-    loading,
-    loginWithRedirect,
-    logout: () => {
-      localStorage.removeItem('jwt_token');
-      logout({ returnTo: window.location.origin });
-    },
-    setRole
+    }
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  const register = async (userData) => {
+    setLoading(true);
+    try {
+      const response = await axios.post('http://localhost:5000/api/auth/register', userData);
+      
+      localStorage.setItem('jwt_token', response.data.access_token);
+      setUser(response.data.user);
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.error || 'Registration failed' 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('jwt_token');
+    setUser(null);
+  };
+
+  const setUserRole = async (role) => {
+    try {
+      await axios.post('http://localhost:5000/api/auth/set-role', { role });
+      setUser(prev => ({ ...prev, role }));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.error };
+    }
+  };
+
+  // Check if user is logged in on app start
+  const checkAuth = async () => {
+    const token = localStorage.getItem('jwt_token');
+    if (token) {
+      try {
+        const response = await axios.get('http://localhost:5000/api/auth/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUser(response.data);
+      } catch (error) {
+        localStorage.removeItem('jwt_token');
+      }
+    }
+    setLoading(false);
+  };
+
+  const value = {
+    user,
+    loading,
+    isAuthenticated: !!user,
+    login,
+    register,
+    logout,
+    setUserRole,
+    checkAuth
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
