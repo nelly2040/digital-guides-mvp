@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: 'http://localhost:5000/api' });
+const api = axios.create({ 
+  baseURL: 'http://localhost:5000/api',
+  timeout: 10000
+});
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('jwt_token');
@@ -9,6 +12,14 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Error:', error);
+    return Promise.reject(error);
+  }
+);
 
 export const browseExperiences = (filters = {}) => {
   const params = new URLSearchParams(filters);
@@ -30,5 +41,10 @@ export const getProfile = () => api.get('/auth/profile');
 export const listGuides = () => api.get('/admin/guides');
 
 export const approveGuide = (guideId) => api.post(`/admin/guides/approve/${guideId}`);
+
+// Reviews
+export const getReviews = (experienceId) => api.get(`/reviews/${experienceId}`);
+
+export const createReview = (data) => api.post('/reviews', data);
 
 export default api;

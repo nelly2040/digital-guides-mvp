@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, Booking, Experience, User, Profile
 import stripe
@@ -15,7 +15,7 @@ def create_booking():
         data = request.json
         
         # Validate required fields
-        required_fields = ['experience_id', 'tour_date', 'guest_count', 'payment_method_id']
+        required_fields = ['experience_id', 'tour_date', 'guest_count']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
@@ -34,47 +34,24 @@ def create_booking():
         # Calculate total amount
         total_amount = experience.price * data['guest_count']
         
-        # Create Stripe payment intent
-        try:
-            stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-            
-            # Create payment intent
-            payment_intent = stripe.PaymentIntent.create(
-                amount=int(total_amount * 100),  # Convert to cents
-                currency='usd',
-                payment_method=data['payment_method_id'],
-                confirm=True,
-                return_url=f'{request.host_url}bookings/success',
-                metadata={
-                    'experience_id': str(experience.id),
-                    'guide_id': str(experience.guide_id),
-                    'traveler_id': str(user_id),
-                    'tour_date': tour_date_str
-                }
-            )
-            
-            # Create booking record
-            booking = Booking(
-                experience_id=data['experience_id'],
-                traveler_id=user_id,
-                tour_date=datetime.strptime(tour_date_str, '%Y-%m-%d'),
-                guest_count=data['guest_count'],
-                total_amount=total_amount,
-                status='confirmed',  # Since payment is confirmed
-                stripe_payment_intent=payment_intent.id
-            )
-            
-            db.session.add(booking)
-            db.session.commit()
-            
-            return jsonify({
-                'message': 'Booking created successfully',
-                'booking_id': booking.id,
-                'payment_status': payment_intent.status
-            }), 201
-            
-        except stripe.error.StripeError as e:
-            return jsonify({'error': f'Payment failed: {str(e)}'}), 400
+        # Create booking record (simplified without Stripe for now)
+        booking = Booking(
+            experience_id=data['experience_id'],
+            traveler_id=user_id,
+            tour_date=datetime.strptime(tour_date_str, '%Y-%m-%d'),
+            guest_count=data['guest_count'],
+            total_amount=total_amount,
+            status='confirmed'
+        )
+        
+        db.session.add(booking)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Booking created successfully',
+            'booking_id': booking.id,
+            'total_amount': total_amount
+        }), 201
             
     except Exception as e:
         db.session.rollback()
@@ -236,85 +213,3 @@ def get_booking(booking_id):
         
     except Exception as e:
         return jsonify({'error': f'Failed to fetch booking: {str(e)}'}), 500
-
-@bp.route('/<int:booking_id>/cancel', methods=['POST'])
-@jwt_required()
-def cancel_booking(booking_id):
-    try:
-        user_id = get_jwt_identity()
-        
-        booking = Booking.query.get_or_404(booking_id)
-        
-        # Check if user is authorized to cancel this booking
-        if booking.traveler_id != user_id:
-            return jsonify({'error': 'Unauthorized'}), 403
-        
-        # Check if booking can be cancelled (not completed or already cancelled)
-        if booking.status in ['completed', 'cancelled']:
-            return jsonify({'error': 'Cannot cancel a completed or already cancelled booking'}), 400
-        
-        # Process refund via Stripe if payment was made
-        if booking.stripe_payment_intent:
-            try:
-                stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-                refund = stripe.Refund.create(
-                    payment_intent=booking.stripe_payment_intent
-                )
-                # You might want to store refund info in your database
-            except stripe.error.StripeError as e:
-                # Log the error but still cancel the booking
-                print(f"Stripe refund failed: {str(e)}")
-        
-        booking.status = 'cancelled'
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Booking cancelled successfully',
-            'booking_id': booking.id
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': f'Failed to cancel booking: {str(e)}'}), 500
-
-# Webhook endpoint for Stripe payments (optional but recommended)
-@bp.route('/webhook', methods=['POST'])
-def stripe_webhook():
-    try:
-        payload = request.get_data(as_text=True)
-        sig_header = request.headers.get('Stripe-Signature')
-        
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, current_app.config['STRIPE_WEBHOOK_SECRET']
-            )
-        except ValueError as e:
-            return jsonify({'error': 'Invalid payload'}), 400
-        except stripe.error.SignatureVerificationError as e:
-            return jsonify({'error': 'Invalid signature'}), 400
-        
-        # Handle specific event types
-        if event['type'] == 'payment_intent.succeeded':
-            payment_intent = event['data']['object']
-            # Update booking status to confirmed
-            booking = Booking.query.filter_by(
-                stripe_payment_intent=payment_intent['id']
-            ).first()
-            if booking:
-                booking.status = 'confirmed'
-                db.session.commit()
-        
-        elif event['type'] == 'payment_intent.payment_failed':
-            payment_intent = event['data']['object']
-            # Update booking status to failed
-            booking = Booking.query.filter_by(
-                stripe_payment_intent=payment_intent['id']
-            ).first()
-            if booking:
-                booking.status = 'failed'
-                db.session.commit()
-        
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        return jsonify({'error': f'Webhook error: {str(e)}'}), 500
