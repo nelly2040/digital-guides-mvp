@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getExperience, getReviews } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -14,11 +14,7 @@ const ExperienceDetail = () => {
   const [activeImage, setActiveImage] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadExperience();
-  }, [id]);
-
-  const loadExperience = async () => {
+  const loadExperience = useCallback(async () => {
     try {
       setLoading(true);
       const [expRes, reviewsRes] = await Promise.all([
@@ -28,7 +24,6 @@ const ExperienceDetail = () => {
       setExp(expRes.data);
       setReviews(reviewsRes.data);
       
-      // Set first available date as default
       if (expRes.data.available_dates.length > 0) {
         setSelectedDate(expRes.data.available_dates[0]);
       }
@@ -38,7 +33,11 @@ const ExperienceDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    loadExperience();
+  }, [loadExperience]);
 
   const handleBookNow = () => {
     if (!isAuthenticated) {
@@ -56,8 +55,8 @@ const ExperienceDetail = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-kenya-green mx-auto"></div>
-          <p className="mt-4 text-xl text-kenya-green">Loading experience details...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-xl text-primary-600">Loading experience details...</p>
         </div>
       </div>
     );
@@ -68,7 +67,7 @@ const ExperienceDetail = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-700 mb-4">Experience not found</h2>
-          <Link to="/experiences" className="text-kenya-green hover:underline">
+          <Link to="/experiences" className="text-primary-600 hover:underline">
             Back to Experiences
           </Link>
         </div>
@@ -81,7 +80,7 @@ const ExperienceDetail = () => {
       {/* Navigation */}
       <div className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4">
-          <Link to="/experiences" className="text-kenya-green hover:underline flex items-center">
+          <Link to="/experiences" className="text-primary-600 hover:underline flex items-center">
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -111,7 +110,7 @@ const ExperienceDetail = () => {
                         key={index}
                         onClick={() => setActiveImage(index)}
                         className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
-                          activeImage === index ? 'border-kenya-green' : 'border-transparent'
+                          activeImage === index ? 'border-primary-600' : 'border-transparent'
                         }`}
                       >
                         <img 
@@ -132,25 +131,25 @@ const ExperienceDetail = () => {
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
                 <div className="flex items-center">
-                  <svg className="w-5 h-5 text-kenya-green mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                   </svg>
                   <span>{exp.location}</span>
                 </div>
                 <div className="flex items-center">
-                  <svg className="w-5 h-5 text-kenya-green mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                   </svg>
                   <span>{exp.duration_hours} hours</span>
                 </div>
                 <div className="flex items-center">
-                  <svg className="w-5 h-5 text-kenya-green mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                   </svg>
                   <span className="capitalize">{exp.category}</span>
                 </div>
                 <div className="flex items-center">
-                  <svg className="w-5 h-5 text-kenya-green mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 005 10c0-1.777.833-3.357 2.125-4.418A5 5 0 0010 11z" clipRule="evenodd" />
                   </svg>
                   <span>Up to 10 guests</span>
@@ -170,7 +169,7 @@ const ExperienceDetail = () => {
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
               <h3 className="text-xl font-semibold mb-4">Meet your guide</h3>
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-kenya-green rounded-full flex items-center justify-center text-white text-xl font-bold">
+                <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
                   {exp.guide.name.charAt(0)}
                 </div>
                 <div>
@@ -228,7 +227,7 @@ const ExperienceDetail = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg sticky top-24 p-6">
               <div className="text-center mb-6">
-                <div className="text-3xl font-bold text-safari-gold mb-2">${exp.price}</div>
+                <div className="text-3xl font-bold text-accent-600 mb-2">${exp.price}</div>
                 <div className="text-gray-600">per person</div>
               </div>
 
@@ -244,8 +243,8 @@ const ExperienceDetail = () => {
                       onClick={() => setSelectedDate(date)}
                       className={`p-3 rounded-lg border text-sm font-medium transition duration-200 ${
                         selectedDate === date
-                          ? 'border-kenya-green bg-kenya-green text-white'
-                          : 'border-gray-300 hover:border-kenya-green text-gray-700'
+                          ? 'border-primary-600 bg-primary-600 text-white'
+                          : 'border-gray-300 hover:border-primary-600 text-gray-700'
                       }`}
                     >
                       {new Date(date).toLocaleDateString('en-US', {
@@ -266,7 +265,7 @@ const ExperienceDetail = () => {
                   <button
                     onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
                     disabled={guestCount <= 1}
-                    className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:border-kenya-green"
+                    className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:border-primary-600"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -278,7 +277,7 @@ const ExperienceDetail = () => {
                   <button
                     onClick={() => setGuestCount(Math.min(10, guestCount + 1))}
                     disabled={guestCount >= 10}
-                    className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:border-kenya-green"
+                    className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:border-primary-600"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -291,14 +290,14 @@ const ExperienceDetail = () => {
               <div className="border-t border-gray-200 pt-4 mb-6">
                 <div className="flex justify-between items-center text-lg font-semibold">
                   <span>Total</span>
-                  <span className="text-safari-gold">${calculateTotal()}</span>
+                  <span className="text-accent-600">${calculateTotal()}</span>
                 </div>
               </div>
 
               {/* Book Button */}
               <button
                 onClick={handleBookNow}
-                className="w-full bg-kenya-green hover:bg-green-700 text-white py-4 rounded-xl text-lg font-bold transition duration-300 transform hover:scale-105 shadow-lg"
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white py-4 rounded-xl text-lg font-bold transition duration-300 transform hover:scale-105 shadow-lg"
               >
                 {isAuthenticated ? 'Book Now 🦁' : 'Login to Book'}
               </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { browseExperiences } from '../services/api';
 
@@ -13,15 +13,7 @@ const Experiences = () => {
     search: ''
   });
 
-  useEffect(() => {
-    loadExperiences();
-  }, []);
-
-  useEffect(() => {
-    filterExperiences();
-  }, [experiences, filters]);
-
-  const loadExperiences = async () => {
+  const loadExperiences = useCallback(async () => {
     try {
       setLoading(true);
       const response = await browseExperiences();
@@ -31,9 +23,9 @@ const Experiences = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterExperiences = () => {
+  const filterExperiences = useCallback(() => {
     let filtered = experiences;
 
     if (filters.location) {
@@ -60,7 +52,15 @@ const Experiences = () => {
     }
 
     setFilteredExperiences(filtered);
-  };
+  }, [experiences, filters]);
+
+  useEffect(() => {
+    loadExperiences();
+  }, [loadExperiences]);
+
+  useEffect(() => {
+    filterExperiences();
+  }, [filterExperiences]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -79,8 +79,8 @@ const Experiences = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-kenya-green mx-auto"></div>
-          <p className="mt-4 text-xl text-kenya-green">Loading amazing Kenyan experiences...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-xl text-primary-600">Loading amazing Kenyan experiences...</p>
         </div>
       </div>
     );
@@ -89,12 +89,12 @@ const Experiences = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-kenya-green text-white py-12">
+      <div className="bg-primary-600 text-white py-12">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold text-center mb-4 font-safari">
+          <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
             Kenyan Experiences
           </h1>
-          <p className="text-xl text-center text-savanna-tan max-w-2xl mx-auto">
+          <p className="text-xl text-center text-primary-100 max-w-2xl mx-auto">
             Discover authentic adventures with local guides. From wildlife safaris to cultural immersions.
           </p>
         </div>
@@ -112,7 +112,7 @@ const Experiences = () => {
                 placeholder="Search experiences..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kenya-green focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -124,7 +124,7 @@ const Experiences = () => {
                 placeholder="e.g., Nairobi, Maasai Mara"
                 value={filters.location}
                 onChange={(e) => handleFilterChange('location', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kenya-green focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -136,7 +136,7 @@ const Experiences = () => {
                 placeholder="e.g., 100"
                 value={filters.maxPrice}
                 onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kenya-green focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -146,7 +146,7 @@ const Experiences = () => {
               <select
                 value={filters.category}
                 onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-kenya-green focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">All Categories</option>
                 <option value="culture">Culture</option>
@@ -186,7 +186,7 @@ const Experiences = () => {
             <p className="text-gray-600 mb-6">Try adjusting your filters or search terms</p>
             <button
               onClick={clearFilters}
-              className="bg-kenya-green hover:bg-green-700 text-white px-6 py-3 rounded-lg transition duration-200"
+              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg transition duration-200"
             >
               Clear All Filters
             </button>
@@ -202,19 +202,19 @@ const Experiences = () => {
                     className="w-full h-48 object-cover group-hover:scale-110 transition duration-300"
                   />
                   <div className="absolute top-4 right-4">
-                    <span className="bg-safari-gold text-kenya-green px-3 py-1 rounded-full text-sm font-bold">
+                    <span className="bg-accent-500 text-white px-3 py-1 rounded-full text-sm font-bold">
                       ${experience.price}
                     </span>
                   </div>
                   <div className="absolute bottom-4 left-4">
-                    <span className="bg-kenya-green text-white px-3 py-1 rounded-full text-sm font-bold capitalize">
+                    <span className="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-bold capitalize">
                       {experience.category}
                     </span>
                   </div>
                 </div>
                 
                 <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-kenya-green transition duration-200">
+                  <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-primary-600 transition duration-200">
                     {experience.title}
                   </h3>
                   <p className="text-gray-600 mb-3 line-clamp-2">{experience.description}</p>
@@ -233,7 +233,7 @@ const Experiences = () => {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <div className="w-8 h-8 bg-kenya-green rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                         {experience.guide.name.charAt(0)}
                       </div>
                       <span className="ml-2 text-sm text-gray-600">{experience.guide.name}</span>
@@ -241,7 +241,7 @@ const Experiences = () => {
                     
                     <Link 
                       to={`/experiences/${experience.id}`}
-                      className="bg-kenya-green hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition duration-200 transform hover:scale-105"
+                      className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-semibold transition duration-200 transform hover:scale-105"
                     >
                       View Details
                     </Link>

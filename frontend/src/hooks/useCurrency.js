@@ -1,12 +1,12 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 const CurrencyContext = createContext();
 
 export const CurrencyProvider = ({ children }) => {
   const [currency, setCurrency] = useState('USD');
-  const [exchangeRates, setExchangeRates] = useState({
+  const [exchangeRates] = useState({
     USD: 1,
-    KES: 150, // Approximate rate
+    KES: 150,
     EUR: 0.85,
     GBP: 0.75
   });
