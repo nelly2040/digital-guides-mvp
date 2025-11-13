@@ -152,3 +152,5 @@ def set_role():
         return jsonify({'message': 'Role updated to guide. Await approval.'})
     
     return jsonify({'error': 'Invalid role'}), 400
+
+    
