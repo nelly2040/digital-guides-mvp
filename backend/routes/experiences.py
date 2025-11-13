@@ -125,3 +125,5 @@ def update_experience(experience_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to update experience: {str(e)}'}), 500
+    
+    
