@@ -5,7 +5,9 @@ const api = axios.create({
   timeout: 10000
 });
 
+// Add request interceptor for debugging
 api.interceptors.request.use((config) => {
+  console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
   const token = localStorage.getItem('jwt_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -13,17 +15,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor for debugging
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`Response from ${response.config.url}:`, response.status);
+    return response;
+  },
   (error) => {
-    console.error('API Error:', error);
+    console.error('API Error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
 
-export const browseExperiences = (filters = {}) => {
-  const params = new URLSearchParams(filters);
-  return api.get(`/experiences?${params}`);
+export const browseExperiences = () => {
+  return api.get('/experiences');
 };
 
 export const getExperience = (id) => api.get(`/experiences/${id}`);
