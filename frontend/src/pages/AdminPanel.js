@@ -1,123 +1,126 @@
 import React, { useState, useEffect } from 'react';
-import { listGuides, approveGuide, getProfile } from '../services/api';
-import { useAuth } from '../hooks/useAuth';
+import { adminAPI } from '../services/api';
 
 const AdminPanel = () => {
-  const { role } = useAuth();
   const [guides, setGuides] = useState([]);
-  const [stats, setStats] = useState({ experiences: 0, bookings: 0, revenue: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (role === 'admin') {
-      loadData();
-    }
-  }, [role]);
+    fetchGuides();
+  }, []);
 
-  const loadData = async () => {
+  const fetchGuides = async () => {
     try {
-      const guidesRes = await listGuides();
-      setGuides(guidesRes.data);
-      
-      // You can add API endpoints for these stats
-      setStats({
-        experiences: 12, // Mock data - add real API
-        bookings: 47,    // Mock data - add real API  
-        revenue: 2850    // Mock data - add real API
-      });
-    } catch (error) {
-      console.error('Error loading admin data:', error);
+      setLoading(true);
+      const response = await adminAPI.listGuides();
+      setGuides(response.data.guides || []);
+    } catch (err) {
+      setError('Failed to load guides');
+      console.error('Error fetching guides:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleApprove = async (guideId) => {
+  const handleApproveGuide = async (guideId) => {
     try {
-      await approveGuide(guideId);
-      setGuides(guides.map(g => g.id === guideId ? {...g, is_approved: true} : g));
-    } catch (error) {
-      alert('Error approving guide: ' + error.response?.data?.error);
+      await adminAPI.approveGuide(guideId);
+      // Update the guide status in the local state
+      setGuides(guides.map(guide => 
+        guide.id === guideId ? { ...guide, is_approved: true } : guide
+      ));
+      alert('Guide approved successfully!');
+    } catch (err) {
+      alert('Failed to approve guide');
+      console.error('Error approving guide:', err);
     }
   };
 
-  if (role !== 'admin') {
+  if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl text-red-600">Access Denied</h1>
-        <p>Admin privileges required.</p>
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
-      
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-blue-50 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2">Total Experiences</h3>
-          <p className="text-3xl font-bold">{stats.experiences}</p>
-        </div>
-        <div className="bg-green-50 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2">Total Bookings</h3>
-          <p className="text-3xl font-bold">{stats.bookings}</p>
-        </div>
-        <div className="bg-purple-50 p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2">Total Revenue</h3>
-          <p className="text-3xl font-bold">${stats.revenue}</p>
-        </div>
-      </div>
-
-      {/* Guides Management */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-4">Guide Applications</h2>
-        {guides.length === 0 ? (
-          <p className="text-gray-600">No guide applications pending.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="px-4 py-2 text-left">Name</th>
-                  <th className="px-4 py-2 text-left">Email</th>
-                  <th className="px-4 py-2 text-left">Location</th>
-                  <th className="px-4 py-2 text-left">Bio</th>
-                  <th className="px-4 py-2 text-left">Status</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {guides.map(guide => (
-                  <tr key={guide.id} className="border-b">
-                    <td className="px-4 py-2">{guide.name}</td>
-                    <td className="px-4 py-2">{guide.email}</td>
-                    <td className="px-4 py-2">{guide.location}</td>
-                    <td className="px-4 py-2 max-w-xs truncate">{guide.bio}</td>
-                    <td className="px-4 py-2">
-                      <span className={`px-2 py-1 rounded ${
-                        guide.is_approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {guide.is_approved ? 'Approved' : 'Pending'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      {!guide.is_approved && (
-                        <button
-                          onClick={() => handleApprove(guide.id)}
-                          className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 mr-2"
-                        >
-                          Approve
-                        </button>
-                      )}
-                      <button className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">
-                        Reject
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className="min-h-screen bg-gray-50 pt-20">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Admin Panel</h1>
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
           </div>
         )}
+
+        {/* Guides Management */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Guide Management</h2>
+          
+          {guides.length === 0 ? (
+            <p className="text-gray-600">No guides found.</p>
+          ) : (
+            <div className="space-y-4">
+              {guides.map((guide) => (
+                <div key={guide.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800">{guide.name}</h3>
+                      <p className="text-gray-600">{guide.email}</p>
+                      <p className="text-gray-600">{guide.phone}</p>
+                      <p className="text-gray-600">{guide.location}</p>
+                      <p className="text-gray-600 mt-2">{guide.bio}</p>
+                    </div>
+                    
+                    <div className="flex flex-col items-end space-y-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        guide.is_approved 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {guide.is_approved ? 'Approved' : 'Pending Approval'}
+                      </span>
+                      
+                      {!guide.is_approved && (
+                        <button
+                          onClick={() => handleApproveGuide(guide.id)}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          Approve Guide
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Total Guides</h3>
+            <p className="text-3xl font-bold text-green-600">{guides.length}</p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Approved Guides</h3>
+            <p className="text-3xl font-bold text-blue-600">
+              {guides.filter(guide => guide.is_approved).length}
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Pending Approval</h3>
+            <p className="text-3xl font-bold text-yellow-600">
+              {guides.filter(guide => !guide.is_approved).length}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

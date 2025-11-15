@@ -26,10 +26,10 @@ const Header = () => {
     setMobileMenuOpen(false);
   };
 
-  const showGuideRegistration = () => {
-    setShowRegister(true);
-    setMobileMenuOpen(false);
-  };
+  // REMOVE THIS LINE: const showGuideRegistration = () => {
+  //   setShowRegister(true);
+  //   setMobileMenuOpen(false);
+  // };
 
   const handleCloseLogin = () => setShowLogin(false);
   const handleCloseRegister = () => setShowRegister(false);

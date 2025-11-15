@@ -1,53 +1,87 @@
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Review, Booking, Experience
-from datetime import datetime
+from flask import Blueprint, request, jsonify
+from models import db, Review, Experience, User
+from routes.auth import token_required
 
 bp = Blueprint('reviews', __name__)
 
-@bp.route('/<int:experience_id>', methods=['GET'])
-def get_reviews(experience_id):
-    reviews = Review.query.filter_by(experience_id=experience_id).all()
-    return jsonify([{
-        'id': r.id, 
-        'rating': r.rating, 
-        'comment': r.comment, 
-        'created_at': r.created_at.isoformat(),
-        'traveler_name': r.booking.traveler.profile.name
-    } for r in reviews])
-
 @bp.route('/', methods=['POST'])
-@jwt_required()
-def create_review():
-    user_id = get_jwt_identity()
-    data = request.json
-    
-    # Check if booking exists and belongs to user
-    booking = Booking.query.filter_by(
-        id=data['booking_id'],
-        traveler_id=user_id,
-        status='completed'
-    ).first()
-    
-    if not booking:
-        return jsonify({'error': 'Booking not found or not completed'}), 404
-    
-    # Check if review already exists for this booking
-    existing_review = Review.query.filter_by(booking_id=data['booking_id']).first()
-    if existing_review:
-        return jsonify({'error': 'Review already exists for this booking'}), 400
-    
-    review = Review(
-        booking_id=data['booking_id'],
-        experience_id=data['experience_id'],
-        rating=data['rating'],
-        comment=data['comment']
-    )
-    
-    db.session.add(review)
-    db.session.commit()
-    
-    return jsonify({
-        'id': review.id,
-        'message': 'Review submitted successfully'
-    }), 201
+@token_required
+def create_review(current_user):
+    try:
+        data = request.get_json()
+        
+        # Check if experience exists
+        experience = Experience.query.get(data['experience_id'])
+        if not experience:
+            return jsonify({
+                'success': False,
+                'error': 'Experience not found'
+            }), 404
+        
+        # Check if user has already reviewed this experience
+        existing_review = Review.query.filter_by(
+            experience_id=data['experience_id'],
+            user_id=current_user.id
+        ).first()
+        
+        if existing_review:
+            return jsonify({
+                'success': False,
+                'error': 'You have already reviewed this experience'
+            }), 400
+        
+        # Create review
+        review = Review(
+            experience_id=data['experience_id'],
+            user_id=current_user.id,
+            rating=data['rating'],
+            comment=data.get('comment', '')
+        )
+        
+        db.session.add(review)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Review created successfully',
+            'review': {
+                'id': review.id,
+                'experience_id': review.experience_id,
+                'user_id': review.user_id,
+                'rating': review.rating,
+                'comment': review.comment,
+                'created_at': review.created_at.isoformat() if review.created_at else None
+            }
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+@bp.route('/experience/<int:experience_id>', methods=['GET'])
+def get_reviews_by_experience(experience_id):
+    try:
+        reviews = Review.query.filter_by(experience_id=experience_id).all()
+        
+        return jsonify({
+            'success': True,
+            'reviews': [{
+                'id': review.id,
+                'experience_id': review.experience_id,
+                'user_id': review.user_id,
+                'rating': review.rating,
+                'comment': review.comment,
+                'created_at': review.created_at.isoformat() if review.created_at else None,
+                'user': {
+                    'id': review.user.id,
+                    'name': review.user.name
+                } if review.user else None
+            } for review in reviews]
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

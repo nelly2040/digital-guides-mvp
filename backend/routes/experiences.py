@@ -1,129 +1,145 @@
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Experience, Category, Review
-import json
+from flask import Blueprint, request, jsonify
+from models import db, Experience, Review
+from routes.auth import token_required
 
 bp = Blueprint('experiences', __name__)
 
 @bp.route('/', methods=['GET'])
 def get_experiences():
     try:
-        # Get filter parameters
-        location = request.args.get('location')
-        max_price = request.args.get('max_price')
-        category = request.args.get('category')
-        search = request.args.get('search')
-        
-        query = Experience.query
-        
-        # Apply filters
-        if location:
-            query = query.filter(Experience.location.ilike(f'%{location}%'))
-        if max_price:
-            query = query.filter(Experience.price <= float(max_price))
-        if category:
-            query = query.filter(Experience.category == Category(category))
-        if search:
-            query = query.filter(
-                (Experience.title.ilike(f'%{search}%')) | 
-                (Experience.description.ilike(f'%{search}%'))
-            )
-        
-        experiences = query.order_by(Experience.created_at.desc()).all()
-        
-        return jsonify([exp.to_dict() for exp in experiences])
-        
+        experiences = Experience.query.filter_by(is_active=True).all()
+        return jsonify({
+            'success': True,
+            'experiences': [{
+                'id': exp.id,
+                'title': exp.title,
+                'description': exp.description,
+                'price': float(exp.price),
+                'location': exp.location,
+                'category': exp.category,
+                'duration': exp.duration,
+                'image_url': exp.image_url,
+                'guide_id': exp.guide_id,
+                'max_people': exp.max_people,
+                'includes': exp.includes,
+                'excludes': exp.excludes,
+                'created_at': exp.created_at.isoformat() if exp.created_at else None
+            } for exp in experiences]
+        }), 200
     except Exception as e:
-        return jsonify({'error': f'Failed to fetch experiences: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @bp.route('/<int:experience_id>', methods=['GET'])
 def get_experience(experience_id):
     try:
-        experience = Experience.query.get_or_404(experience_id)
-        return jsonify(experience.to_dict())
+        experience = Experience.query.get(experience_id)
+        if not experience:
+            return jsonify({
+                'success': False,
+                'error': 'Experience not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'experience': {
+                'id': experience.id,
+                'title': experience.title,
+                'description': experience.description,
+                'price': float(experience.price),
+                'location': experience.location,
+                'category': experience.category,
+                'duration': experience.duration,
+                'image_url': experience.image_url,
+                'guide_id': experience.guide_id,
+                'max_people': experience.max_people,
+                'includes': experience.includes,
+                'excludes': experience.excludes,
+                'created_at': experience.created_at.isoformat() if experience.created_at else None,
+                'guide': {
+                    'id': experience.guide.id,
+                    'name': experience.guide.name,
+                    'email': experience.guide.email,
+                    'location': experience.guide.location,
+                    'bio': experience.guide.bio
+                } if experience.guide else None
+            }
+        }), 200
     except Exception as e:
-        return jsonify({'error': f'Failed to fetch experience: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @bp.route('/', methods=['POST'])
-@jwt_required()
-def create_experience():
+@token_required
+def create_experience(current_user):
     try:
-        user_id = get_jwt_identity()
-        data = request.json
-        
-        # Validate required fields
-        required_fields = ['title', 'description', 'price', 'location', 'category']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
+        data = request.get_json()
         
         experience = Experience(
             title=data['title'],
             description=data['description'],
             price=float(data['price']),
-            duration_hours=data.get('duration_hours'),
-            category=Category(data['category']),
             location=data['location'],
-            itinerary=data.get('itinerary', ''),
-            photos=json.dumps(data.get('photos', [])),
-            available_dates=json.dumps(data.get('available_dates', [])),
-            guide_id=user_id
+            category=data['category'],
+            duration=data.get('duration', ''),
+            max_people=data.get('max_people', 10),
+            includes=data.get('includes', ''),
+            excludes=data.get('excludes', ''),
+            image_url=data.get('image_url', ''),
+            guide_id=current_user.id
         )
         
         db.session.add(experience)
         db.session.commit()
         
         return jsonify({
+            'success': True,
             'message': 'Experience created successfully',
-            'experience': experience.to_dict()
+            'experience': {
+                'id': experience.id,
+                'title': experience.title,
+                'description': experience.description,
+                'price': float(experience.price),
+                'location': experience.location,
+                'category': experience.category
+            }
         }), 201
-        
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Failed to create experience: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
 
-@bp.route('/<int:experience_id>', methods=['PUT'])
-@jwt_required()
-def update_experience(experience_id):
+@bp.route('/guide', methods=['GET'])
+@token_required
+def get_guide_experiences(current_user):
     try:
-        user_id = get_jwt_identity()
-        data = request.json
-        
-        experience = Experience.query.get_or_404(experience_id)
-        
-        # Check if user is the guide who created this experience
-        if experience.guide_id != user_id:
-            return jsonify({'error': 'Unauthorized'}), 403
-        
-        # Update fields
-        if 'title' in data:
-            experience.title = data['title']
-        if 'description' in data:
-            experience.description = data['description']
-        if 'price' in data:
-            experience.price = float(data['price'])
-        if 'duration_hours' in data:
-            experience.duration_hours = data['duration_hours']
-        if 'category' in data:
-            experience.category = Category(data['category'])
-        if 'location' in data:
-            experience.location = data['location']
-        if 'itinerary' in data:
-            experience.itinerary = data['itinerary']
-        if 'photos' in data:
-            experience.photos = json.dumps(data['photos'])
-        if 'available_dates' in data:
-            experience.available_dates = json.dumps(data['available_dates'])
-        
-        db.session.commit()
+        experiences = Experience.query.filter_by(guide_id=current_user.id).all()
         
         return jsonify({
-            'message': 'Experience updated successfully',
-            'experience': experience.to_dict()
-        })
-        
+            'success': True,
+            'experiences': [{
+                'id': exp.id,
+                'title': exp.title,
+                'description': exp.description,
+                'price': float(exp.price),
+                'location': exp.location,
+                'category': exp.category,
+                'duration': exp.duration,
+                'image_url': exp.image_url,
+                'max_people': exp.max_people,
+                'includes': exp.includes,
+                'excludes': exp.excludes,
+                'created_at': exp.created_at.isoformat() if exp.created_at else None
+            } for exp in experiences]
+        }), 200
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': f'Failed to update experience: {str(e)}'}), 500
-    
-    
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

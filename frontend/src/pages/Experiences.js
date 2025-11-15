@@ -18,11 +18,20 @@ const Experiences = () => {
   const fetchExperiences = async () => {
     try {
       setLoading(true);
+      setError('');
+      console.log('Fetching experiences...');
+      
       const response = await experiencesAPI.getAll();
-      setExperiences(response.data.experiences || response.data);
+      console.log('Experiences response:', response.data);
+      
+      if (response.data.success) {
+        setExperiences(response.data.experiences || []);
+      } else {
+        setError('Failed to load experiences: ' + (response.data.error || 'Unknown error'));
+      }
     } catch (err) {
-      setError('Failed to load experiences. Please try again.');
       console.error('Error fetching experiences:', err);
+      setError('Failed to load experiences. Please check if the backend is running.');
     } finally {
       setLoading(false);
     }
@@ -40,7 +49,7 @@ const Experiences = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
       </div>
     );
@@ -48,7 +57,7 @@ const Experiences = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-600 text-xl mb-4">{error}</div>
           <button 
@@ -124,12 +133,16 @@ const Experiences = () => {
                     src={experience.image_url} 
                     alt={experience.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
                   />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">Kenya</span>
-                  </div>
-                )}
+                ) : null}
+                <div className="w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center" 
+                     style={{ display: experience.image_url ? 'none' : 'flex' }}>
+                  <span className="text-white font-bold text-lg">Kenya</span>
+                </div>
                 <div className="absolute top-3 left-3">
                   <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
                     {experience.category}
@@ -162,7 +175,7 @@ const Experiences = () => {
           ))}
         </div>
 
-        {filteredExperiences.length === 0 && (
+        {filteredExperiences.length === 0 && experiences.length > 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500 text-lg">No experiences found matching your filters.</div>
             <button 
@@ -170,6 +183,18 @@ const Experiences = () => {
               className="mt-4 text-green-600 hover:text-green-700 font-semibold"
             >
               Clear filters
+            </button>
+          </div>
+        )}
+
+        {experiences.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-lg">No experiences available yet.</div>
+            <button 
+              onClick={fetchExperiences}
+              className="mt-4 text-green-600 hover:text-green-700 font-semibold"
+            >
+              Refresh
             </button>
           </div>
         )}

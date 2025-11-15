@@ -1,104 +1,137 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+from flask import Blueprint, request, jsonify
+from models import User, db
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+import datetime
+from functools import wraps
 
-const AuthContext = createContext();
+bp = Blueprint('auth', __name__)
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-};
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+        try:
+            if token.startswith('Bearer '):
+                token = token[7:]
+            data = jwt.decode(token, 'your-secret-key', algorithms=['HS256'])
+            current_user = User.query.get(data['user_id'])
+            if not current_user:
+                return jsonify({'message': 'User not found!'}), 401
+        except Exception as e:
+            return jsonify({'message': 'Token is invalid!', 'error': str(e)}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+@bp.route('/register', methods=['POST'])
+def register():
+    try:
+        data = request.get_json()
+        print("Registration data received:", data)  # Debug log
+        
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=data['email']).first()
+        if existing_user:
+            print("User already exists:", data['email'])
+            return jsonify({'error': 'User already exists with this email'}), 400
+        
+        # Create new user
+        hashed_password = generate_password_hash(data['password'])
+        user = User(
+            email=data['email'],
+            password=hashed_password,
+            name=data.get('name', ''),
+            role=data.get('role', 'traveler'),
+            phone=data.get('phone', ''),
+            location=data.get('location', ''),
+            bio=data.get('bio', ''),
+            is_approved=True  # Auto-approve for now
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        print("User created successfully:", user.email)
+        
+        # Generate token
+        token = jwt.encode({
+            'user_id': user.id,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        }, 'your-secret-key', algorithm='HS256')
+        
+        return jsonify({
+            'message': 'User created successfully',
+            'token': token,
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'name': user.name,
+                'role': user.role,
+                'phone': user.phone,
+                'location': user.location,
+                'bio': user.bio,
+                'is_approved': user.is_approved
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print("Registration error:", str(e))  # Debug log
+        return jsonify({'error': str(e)}), 400
 
-  useEffect(() => {
-    // Check if user is logged in on app start
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
-    }
-    setLoading(false);
-  }, []);
+@bp.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('password'):
+            return jsonify({'message': 'Email and password required'}), 400
+        
+        user = User.query.filter_by(email=data['email']).first()
+        
+        if not user:
+            return jsonify({'message': 'Invalid email or password'}), 401
+            
+        if not check_password_hash(user.password, data['password']):
+            return jsonify({'message': 'Invalid email or password'}), 401
+        
+        # Generate token
+        token = jwt.encode({
+            'user_id': user.id,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        }, 'your-secret-key', algorithm='HS256')
+        
+        return jsonify({
+            'message': 'Login successful',
+            'token': token,
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'name': user.name,
+                'role': user.role,
+                'phone': user.phone,
+                'location': user.location,
+                'bio': user.bio,
+                'is_approved': user.is_approved
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
-  const login = async (email, password) => {
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        return { success: true };
-      } else {
-        return { success: false, error: data.message || 'Login failed' };
-      }
-    } catch (error) {
-      return { success: false, error: 'Network error. Please try again.' };
-    }
-  };
-
-  const register = async (userData) => {
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        return { success: true };
-      } else {
-        return { success: false, error: data.error || 'Registration failed' };
-      }
-    } catch (error) {
-      return { success: false, error: 'Network error. Please try again.' };
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-  };
-
-  const value = {
-    user,
-    login,
-    register,
-    logout,
-    isAuthenticated: !!user,
-    loading,
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+@bp.route('/profile', methods=['GET'])
+@token_required
+def profile(current_user):
+    return jsonify({
+        'user': {
+            'id': current_user.id,
+            'email': current_user.email,
+            'name': current_user.name,
+            'role': current_user.role,
+            'phone': current_user.phone,
+            'location': current_user.location,
+            'bio': current_user.bio,
+            'is_approved': current_user.is_approved
+        }
+    }), 200
