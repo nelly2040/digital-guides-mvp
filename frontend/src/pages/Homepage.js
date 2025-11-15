@@ -1,19 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { setUserRole } from '../services/api';
+import RegisterModal from '../components/RegisterModal';
 
 const Homepage = () => {
-  const { loginWithRedirect, isAuthenticated, role, setRole } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerAsGuide, setRegisterAsGuide] = useState(false);
 
-  const handleBecomeGuide = async () => {
-    try {
-      await setUserRole('guide');
-      setRole('guide');
-      alert('Guide application submitted! Await admin approval.');
-    } catch (error) {
-      alert('Error submitting application: ' + error.message);
+  const handleJoinAsGuide = () => {
+    if (isAuthenticated) {
+      if (user?.role === 'guide') {
+        window.location.href = '/guide-dashboard';
+      } else {
+        alert('To become a guide, please update your profile in your account settings.');
+      }
+    } else {
+      setRegisterAsGuide(true);
+      setShowRegisterModal(true);
     }
+  };
+
+  const handleBrowseExperiences = () => {
+    window.location.href = '/experiences';
+  };
+
+  const handleCloseRegisterModal = () => {
+    setShowRegisterModal(false);
+    setRegisterAsGuide(false);
   };
 
   const features = [
@@ -41,87 +55,136 @@ const Homepage = () => {
       icon: '🧮',
       title: 'Safari Cost Calculator',
       description: 'Use our interactive calculator to plan your safari budget and find the perfect experience for your needs.'
+    },
+    {
+      icon: '💰',
+      title: 'Best Price Guarantee',
+      description: 'Get the best rates by booking directly with local guides, cutting out expensive middlemen.'
     }
   ];
 
   const popularExperiences = [
     {
       title: 'Maasai Mara Safari',
-      image: 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      image: 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
       price: 450,
       location: 'Maasai Mara',
       duration: '3 days',
-      category: 'Adventure'
+      category: 'Wildlife Safari',
+      rating: 4.9
     },
     {
       title: 'Lamu Island Culture',
-      image: 'https://images.unsplash.com/photo-1589556183411-27dbe3d3ef4c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      image: 'https://images.unsplash.com/photo-1589556183411-27dbe3d3ef4c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
       price: 120,
-      location: 'Lamu',
+      location: 'Lamu Archipelago',
       duration: '8 hours',
-      category: 'Culture'
+      category: 'Cultural Tour',
+      rating: 4.8
     },
     {
       title: 'Mount Kenya Trek',
-      image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
       price: 320,
       location: 'Mount Kenya',
       duration: '4 days',
-      category: 'Adventure'
+      category: 'Adventure',
+      rating: 4.7
     }
+  ];
+
+  const stats = [
+    { number: '500+', label: 'Local Guides' },
+    { number: '2,000+', label: 'Happy Travelers' },
+    { number: '150+', label: 'Unique Experiences' },
+    { number: '4.9★', label: 'Average Rating' }
   ];
 
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section 
-        className="relative bg-safari-hero bg-cover bg-center py-24 lg:py-32"
-        style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80")' }}
+        className="relative bg-cover bg-center bg-fixed min-h-screen flex items-center justify-center"
+        style={{ 
+          backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4)), url("https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80")'
+        }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/40"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/30 to-green-800/20"></div>
         <div className="relative container mx-auto px-4 text-center text-white">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-            Discover <span className="text-accent-500">Authentic Kenya</span>
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed">
-            Skip the tourist traps. Book unique experiences directly with local Kenyan guides who share their culture, wildlife, and hidden gems.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link 
-              to="/experiences" 
-              className="bg-accent-500 hover:bg-accent-600 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
-            >
-              🦁 Explore Experiences
-            </Link>
-            {!isAuthenticated && (
-              <button 
-                onClick={() => loginWithRedirect({ screen_hint: 'signup' })} 
-                className="border-2 border-white text-white hover:bg-white hover:text-neutral-900 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300"
+          <div className="max-w-4xl mx-auto">
+            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6 border border-white/20">
+              <span className="text-sm font-semibold">🎯 Authentic Kenyan Experiences</span>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+              Discover <span className="text-amber-400">Real Kenya</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed text-white/90">
+              Skip the tourist traps. Book unique experiences directly with local Kenyan guides who share their culture, wildlife, and hidden gems.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button
+                onClick={handleBrowseExperiences}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-3xl flex items-center space-x-2"
               >
-                Join the Adventure
+                <span>🦁</span>
+                <span>Explore Experiences</span>
               </button>
-            )}
+              {!isAuthenticated && (
+                <button 
+                  onClick={handleJoinAsGuide}
+                  className="border-2 border-white text-white hover:bg-white hover:text-emerald-900 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 backdrop-blur-sm"
+                >
+                  Join as Local Guide
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
+            <div className="w-1 h-3 bg-white rounded-full mt-2"></div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-gradient-to-br from-emerald-50 to-green-100">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-emerald-700 mb-2">{stat.number}</div>
+                <div className="text-neutral-600 font-medium">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-neutral-50">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
-              Why Choose Digital Guides?
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">
+              Why Choose <span className="text-emerald-600">Digital Guides</span>?
             </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-              We connect travelers with authentic local experiences that go beyond typical tourist activities.
+            <p className="text-xl text-neutral-600 max-w-3xl mx-auto leading-relaxed">
+              We're revolutionizing travel in Kenya by connecting you directly with local experts for authentic, unforgettable experiences.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 border border-neutral-100">
-                <div className="text-3xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-neutral-900 mb-3">{feature.title}</h3>
-                <p className="text-neutral-600 leading-relaxed">{feature.description}</p>
+              <div 
+                key={index} 
+                className="group bg-gradient-to-br from-white to-emerald-50 rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 border border-emerald-100 hover:border-emerald-200 hover:scale-105"
+              >
+                <div className="text-4xl mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                  {feature.icon}
+                </div>
+                <h3 className="text-2xl font-bold text-neutral-900 mb-4">{feature.title}</h3>
+                <p className="text-neutral-600 leading-relaxed text-lg">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -129,32 +192,52 @@ const Homepage = () => {
       </section>
 
       {/* Popular Experiences */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-gradient-to-br from-neutral-50 to-neutral-100">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
-              Popular Kenyan Experiences
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">
+              Featured <span className="text-emerald-600">Kenyan Adventures</span>
             </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+            <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
               Discover what makes Kenya one of the world's most incredible travel destinations
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             {popularExperiences.map((exp, index) => (
-              <div key={index} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-100">
-                <img src={exp.image} alt={exp.title} className="w-full h-48 object-cover" />
+              <div 
+                key={index} 
+                className="group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105"
+              >
+                <div className="relative overflow-hidden">
+                  <img 
+                    src={exp.image} 
+                    alt={exp.title} 
+                    className="w-full h-64 object-cover transform group-hover:scale-110 transition-transform duration-500" 
+                  />
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                    <span className="text-emerald-600 font-bold">${exp.price}</span>
+                    <span className="text-neutral-500 text-sm">/person</span>
+                  </div>
+                  <div className="absolute bottom-4 left-4 bg-amber-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    ⭐ {exp.rating}
+                  </div>
+                </div>
                 <div className="p-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-semibold text-neutral-900">{exp.title}</h3>
-                    <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium capitalize">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-2xl font-bold text-neutral-900 group-hover:text-emerald-600 transition-colors duration-300">
+                      {exp.title}
+                    </h3>
+                  </div>
+                  <p className="text-neutral-600 mb-4 flex items-center space-x-2">
+                    <span>📍</span>
+                    <span>{exp.location}</span>
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">
                       {exp.category}
                     </span>
-                  </div>
-                  <p className="text-neutral-600 mb-4">{exp.location} • {exp.duration}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-accent-600">${exp.price}</span>
-                    <span className="text-sm text-neutral-500">per person</span>
+                    <span className="text-neutral-500">{exp.duration}</span>
                   </div>
                 </div>
               </div>
@@ -162,57 +245,67 @@ const Homepage = () => {
           </div>
 
           <div className="text-center">
-            <Link 
-              to="/experiences" 
-              className="inline-block bg-primary-500 hover:bg-primary-600 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors duration-300"
+            <button
+              onClick={handleBrowseExperiences}
+              className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-3xl"
             >
-              View All Experiences
-            </Link>
+              Discover All Adventures
+            </button>
           </div>
         </div>
       </section>
 
       {/* CTA Section for Guides */}
-      <section className="py-16 bg-gradient-to-r from-primary-500 to-primary-700">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Are You a Local Guide?
-          </h2>
-          <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-            Join our platform and share your unique Kenyan experiences with travelers from around the world. Earn directly from your expertise and passion.
-          </p>
-          {isAuthenticated ? (
-            <div className="space-y-4">
-              {role === 'traveler' && (
-                <button 
-                  onClick={handleBecomeGuide}
-                  className="bg-white hover:bg-neutral-100 text-primary-600 px-8 py-4 rounded-xl text-lg font-semibold transition-colors duration-300"
-                >
-                  🦒 Become a Guide
-                </button>
-              )}
-              {role === 'guide' && (
-                <Link 
-                  to="/guide/dashboard"
-                  className="inline-block bg-white hover:bg-neutral-100 text-primary-600 px-8 py-4 rounded-xl text-lg font-semibold transition-colors duration-300"
-                >
-                  Go to Dashboard
-                </Link>
-              )}
-            </div>
-          ) : (
-            <button 
-              onClick={() => loginWithRedirect({ screen_hint: 'signup' })}
-              className="bg-white hover:bg-neutral-100 text-primary-600 px-8 py-4 rounded-xl text-lg font-semibold transition-colors duration-300"
-            >
-              Join as Guide
-            </button>
-          )}
+      <section className="py-20 bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative container mx-auto px-4 text-center text-white">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              Are You a <span className="text-amber-300">Local Guide</span>?
+            </h2>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed text-emerald-100">
+              Join our platform and share your unique Kenyan experiences with travelers from around the world. Earn directly from your expertise and passion.
+            </p>
+            {isAuthenticated ? (
+              <div className="space-y-4">
+                {user?.role === 'traveler' && (
+                  <button 
+                    onClick={handleJoinAsGuide}
+                    className="bg-white hover:bg-neutral-100 text-emerald-600 px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl"
+                  >
+                    🦒 Start Your Guide Journey
+                  </button>
+                )}
+                {user?.role === 'guide' && (
+                  <Link 
+                    to="/guide-dashboard"
+                    className="inline-block bg-white hover:bg-neutral-100 text-emerald-600 px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl"
+                  >
+                    Go to Dashboard
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <button 
+                onClick={handleJoinAsGuide}
+                className="bg-white hover:bg-neutral-100 text-emerald-600 px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl"
+              >
+                Join as Local Guide
+              </button>
+            )}
+          </div>
         </div>
       </section>
+
+      {/* Register Modal for Guide Registration */}
+      <RegisterModal 
+        isOpen={showRegisterModal}
+        onClose={handleCloseRegisterModal}
+        onSwitchToLogin={() => {}}
+        initialRole={registerAsGuide ? 'guide' : 'traveler'}
+      />
     </div>
   );
 };
 
 export default Homepage;
-

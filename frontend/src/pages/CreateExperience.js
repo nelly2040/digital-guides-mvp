@@ -29,7 +29,8 @@ const CreateExperience = () => {
         return;
       }
 
-      const response = await experiencesAPI.create(formData);
+      // Remove the unused response variable
+      await experiencesAPI.create(formData);
       setMessage('Experience created successfully!');
       setFormData({
         title: '',

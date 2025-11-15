@@ -1,98 +1,184 @@
-import React, { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import React, { useState, useEffect } from 'react';
+import { authAPI } from '../services/api';
 
 const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login, loading } = useAuth();
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setError('');
-    
-    const result = await login(email, password);
-    if (result.success) {
-      onClose();
-    } else {
-      setError(result.error);
+
+    try {
+      const response = await authAPI.login(formData);
+      
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        onClose();
+        window.location.reload();
+      }
+    } catch (err) {
+      setError('Login failed. Please check your email and password.');
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.keyCode === 27) onClose();
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-neutral-900">Welcome Back</h2>
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-700">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div 
+      className="modal-overlay bg-black/60 backdrop-blur-sm p-4"
+      onClick={handleBackdropClick}
+    >
+      <div className="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="relative p-6 border-b border-neutral-100">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">
+              Welcome Back
+            </h2>
+            <p className="text-neutral-600">
+              Sign in to your Digital Guides account
+            </p>
+          </div>
+          
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 w-8 h-8 bg-neutral-100 hover:bg-neutral-200 rounded-full flex items-center justify-center transition-colors duration-200"
+          >
+            <svg className="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Form */}
+        <div className="p-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center space-x-2">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-medium">{error}</span>
             </div>
           )}
-          
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              required
-            />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Email Address
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 pl-11 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                  placeholder="Enter your email"
+                  required
+                />
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                  </svg>
+                </div>
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary-500 hover:bg-primary-600 text-white py-3 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 pl-11 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                  placeholder="Enter your password"
+                  required
+                />
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-neutral-600">
-            Don't have an account?{' '}
             <button
-              onClick={onSwitchToRegister}
-              className="text-primary-600 hover:text-primary-700 font-semibold"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign up
+              {loading ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Signing In...</span>
+                </div>
+              ) : (
+                'Sign In to Your Account'
+              )}
             </button>
-          </p>
-        </div>
+          </form>
 
-        <div className="mt-6 p-4 bg-neutral-50 rounded-lg">
-          <p className="text-sm text-neutral-600 mb-2">Demo Accounts:</p>
-          <div className="text-xs space-y-1">
-            <p><strong>Traveler:</strong> traveler@test.com / password123</p>
-            <p><strong>Guide:</strong> guide@kenya.com / password123</p>
-            <p><strong>Admin:</strong> admin@digitalguides.com / password123</p>
+          <div className="text-center pt-4 border-t border-neutral-100 mt-6">
+            <p className="text-neutral-600">
+              Don't have an account?{' '}
+              <button
+                onClick={onSwitchToRegister}
+                className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors duration-200"
+              >
+                Create an account
+              </button>
+            </p>
           </div>
         </div>
       </div>
