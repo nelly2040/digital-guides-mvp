@@ -1,56 +1,24 @@
-import axios from 'axios';
+const API_BASE_URL = 'http://localhost:5000/api';
 
-const api = axios.create({ 
-  baseURL: 'http://localhost:5000/api',
-  timeout: 10000
-});
-
-// Add request interceptor for debugging
-api.interceptors.request.use((config) => {
-  console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
-  const token = localStorage.getItem('jwt_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Add response interceptor for debugging
-api.interceptors.response.use(
-  (response) => {
-    console.log(`Response from ${response.config.url}:`, response.status);
-    return response;
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
   },
-  (error) => {
-    console.error('API Error:', error.response?.data || error.message);
-    return Promise.reject(error);
-  }
-);
+});
 
-export const browseExperiences = () => {
-  return api.get('/experiences');
+// Auth API
+export const authAPI = {
+  login: (credentials) => api.post('/auth/login/', credentials),
+  register: (userData) => api.post('/auth/register/', userData),
+  getProfile: () => api.get('/auth/profile/'),
 };
 
-export const getExperience = (id) => api.get(`/experiences/${id}`);
-
-export const createBooking = (data) => api.post('/bookings', data);
-
-export const getGuideBookings = (guideId) => api.get(`/bookings/guide/${guideId}`);
-
-export const createExperience = (data) => api.post('/experiences', data);
-
-export const setUserRole = (role) => api.post('/auth/set-role', { role });
-
-export const getProfile = () => api.get('/auth/profile');
-
-export const listGuides = () => api.get('/admin/guides');
-
-export const approveGuide = (guideId) => api.post(`/admin/guides/approve/${guideId}`);
-
-// Reviews
-export const getReviews = (experienceId) => api.get(`/reviews/${experienceId}`);
-
-export const createReview = (data) => api.post('/reviews', data);
+// Experiences API  
+export const experiencesAPI = {
+  getAll: () => api.get('/experiences/'),
+  getById: (id) => api.get(`/experiences/${id}/`),
+  create: (data) => api.post('/experiences/', data),
+};
 
 export default api;
-
