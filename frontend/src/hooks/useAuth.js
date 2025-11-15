@@ -1,91 +1,68 @@
-import { createContext, useContext, useState } from 'react';
-import axios from 'axios';
+import { useState, useEffect, createContext, useContext } from 'react';
 
 const AuthContext = createContext();
 
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const login = async (email, password) => {
-    setLoading(true);
-    try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
-        email,
-        password
-      });
-      
-      localStorage.setItem('jwt_token', response.data.access_token);
-      setUser(response.data.user);
-      return { success: true };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Login failed' 
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const register = async (userData) => {
-    setLoading(true);
-    try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', userData);
-      
-      localStorage.setItem('jwt_token', response.data.access_token);
-      setUser(response.data.user);
-      return { success: true };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Registration failed' 
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('jwt_token');
-    setUser(null);
-  };
-
-  const setUserRole = async (role) => {
-    try {
-      await axios.post('http://localhost:5000/api/auth/set-role', { role });
-      setUser(prev => ({ ...prev, role }));
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.response?.data?.error };
-    }
-  };
-
-  // Check if user is logged in on app start
-  const checkAuth = async () => {
-    const token = localStorage.getItem('jwt_token');
-    if (token) {
+  useEffect(() => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData) {
       try {
-        const response = await axios.get('http://localhost:5000/api/auth/profile', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setUser(response.data);
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
       } catch (error) {
-        localStorage.removeItem('jwt_token');
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
       }
     }
     setLoading(false);
+  }, []);
+
+  const login = async (userData, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    setIsAuthenticated(true);
+  };
+
+  const register = async (userData, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsAuthenticated(false);
+    window.location.href = '/';
   };
 
   const value = {
     user,
-    loading,
-    isAuthenticated: !!user,
     login,
     register,
     logout,
-    setUserRole,
-    checkAuth
+    loading,
+    isAuthenticated
   };
 
   return (
@@ -93,12 +70,4 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
 };

@@ -1,47 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import LoginModal from './LoginModal';
-import RegisterModal from './RegisterModal';
 
 const Header = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-  const showLoginModal = () => {
-    setShowLogin(true);
-    setMobileMenuOpen(false);
-  };
-
-  const showRegisterModal = () => {
-    setShowRegister(true);
-    setMobileMenuOpen(false);
-  };
-
-  // REMOVE THIS LINE: const showGuideRegistration = () => {
-  //   setShowRegister(true);
-  //   setMobileMenuOpen(false);
-  // };
-
-  const handleCloseLogin = () => setShowLogin(false);
-  const handleCloseRegister = () => setShowRegister(false);
-
-  const handleSwitchToRegister = () => {
-    setShowLogin(false);
-    setShowRegister(true);
-  };
-
-  const handleSwitchToLogin = () => {
-    setShowRegister(false);
-    setShowLogin(true);
   };
 
   return (
@@ -121,18 +89,18 @@ const Header = () => {
                 </div>
               ) : (
                 <div className="flex items-center space-x-4">
-                  <button 
-                    onClick={showLoginModal}
+                  <Link 
+                    to="/login"
                     className="text-neutral-700 hover:text-emerald-600 font-medium transition-all duration-200 hover:scale-105"
                   >
                     Sign In
-                  </button>
-                  <button 
-                    onClick={showRegisterModal}
+                  </Link>
+                  <Link 
+                    to="/register"
                     className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
                   >
                     Join Now
-                  </button>
+                  </Link>
                 </div>
               )}
             </nav>
@@ -214,37 +182,26 @@ const Header = () => {
                   </>
                 ) : (
                   <div className="flex flex-col space-y-3 pt-4 border-t border-neutral-100">
-                    <button 
-                      onClick={showLoginModal}
+                    <Link 
+                      to="/login"
                       className="text-neutral-700 hover:text-emerald-600 font-medium transition-colors duration-200 py-2 text-left"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Sign In
-                    </button>
-                    <button 
-                      onClick={showRegisterModal}
-                      className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors duration-200"
+                    </Link>
+                    <Link 
+                      to="/register"
+                      className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors duration-200 text-center"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Join Now
-                    </button>
+                    </Link>
                   </div>
                 )}
               </div>
             </div>
           )}
         </div>
-
-        {/* Modals */}
-        <LoginModal 
-          isOpen={showLogin}
-          onClose={handleCloseLogin}
-          onSwitchToRegister={handleSwitchToRegister}
-        />
-
-        <RegisterModal 
-          isOpen={showRegister}
-          onClose={handleCloseRegister}
-          onSwitchToLogin={handleSwitchToLogin}
-        />
       </header>
     </>
   );

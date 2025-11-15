@@ -1,33 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import RegisterModal from '../components/RegisterModal';
 
 const Homepage = () => {
   const { isAuthenticated, user } = useAuth();
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [registerAsGuide, setRegisterAsGuide] = useState(false);
-
-  const handleJoinAsGuide = () => {
-    if (isAuthenticated) {
-      if (user?.role === 'guide') {
-        window.location.href = '/guide-dashboard';
-      } else {
-        alert('To become a guide, please update your profile in your account settings.');
-      }
-    } else {
-      setRegisterAsGuide(true);
-      setShowRegisterModal(true);
-    }
-  };
 
   const handleBrowseExperiences = () => {
     window.location.href = '/experiences';
-  };
-
-  const handleCloseRegisterModal = () => {
-    setShowRegisterModal(false);
-    setRegisterAsGuide(false);
   };
 
   const features = [
@@ -130,12 +109,12 @@ const Homepage = () => {
                 <span>Explore Experiences</span>
               </button>
               {!isAuthenticated && (
-                <button 
-                  onClick={handleJoinAsGuide}
-                  className="border-2 border-white text-white hover:bg-white hover:text-emerald-900 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 backdrop-blur-sm"
+                <Link 
+                  to="/register"
+                  className="border-2 border-white text-white hover:bg-white hover:text-emerald-900 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 backdrop-blur-sm text-center"
                 >
-                  Join as Local Guide
-                </button>
+                  Join as Local Guide/Traveler
+                </Link>
               )}
             </div>
           </div>
@@ -269,12 +248,12 @@ const Homepage = () => {
             {isAuthenticated ? (
               <div className="space-y-4">
                 {user?.role === 'traveler' && (
-                  <button 
-                    onClick={handleJoinAsGuide}
-                    className="bg-white hover:bg-neutral-100 text-emerald-600 px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl"
+                  <Link 
+                    to="/guide-registration"
+                    className="inline-block bg-white hover:bg-neutral-100 text-emerald-600 px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl"
                   >
                     🦒 Start Your Guide Journey
-                  </button>
+                  </Link>
                 )}
                 {user?.role === 'guide' && (
                   <Link 
@@ -286,24 +265,16 @@ const Homepage = () => {
                 )}
               </div>
             ) : (
-              <button 
-                onClick={handleJoinAsGuide}
-                className="bg-white hover:bg-neutral-100 text-emerald-600 px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl"
+              <Link 
+                to="/register?role=guide"
+                className="inline-block bg-white hover:bg-neutral-100 text-emerald-600 px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-2xl"
               >
                 Join as Local Guide
-              </button>
+              </Link>
             )}
           </div>
         </div>
       </section>
-
-      {/* Register Modal for Guide Registration */}
-      <RegisterModal 
-        isOpen={showRegisterModal}
-        onClose={handleCloseRegisterModal}
-        onSwitchToLogin={() => {}}
-        initialRole={registerAsGuide ? 'guide' : 'traveler'}
-      />
     </div>
   );
 };

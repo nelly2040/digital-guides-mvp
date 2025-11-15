@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
   const [formData, setFormData] = useState({
@@ -8,16 +9,17 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { login } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
-      document.body.classList.add('modal-open');
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.classList.remove('modal-open');
+      document.body.style.overflow = 'unset';
     }
     
     return () => {
-      document.body.classList.remove('modal-open');
+      document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
 
@@ -28,15 +30,26 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
 
     try {
       const response = await authAPI.login(formData);
+      console.log('Login response:', response);
       
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      if (response.token && response.user) {
+        await login(response.user, response.token);
         onClose();
-        window.location.reload();
+        
+        // Redirect based on user role
+        setTimeout(() => {
+          if (response.user.role === 'guide') {
+            window.location.href = '/guide-dashboard';
+          } else if (response.user.role === 'admin') {
+            window.location.href = '/admin';
+          } else {
+            window.location.href = '/experiences';
+          }
+        }, 100);
       }
     } catch (err) {
-      setError('Login failed. Please check your email and password.');
+      console.error('Login error:', err);
+      setError(err.response?.data?.message || err.message || 'Login failed. Please check your email and password.');
     } finally {
       setLoading(false);
     }
@@ -67,10 +80,10 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
 
   return (
     <div 
-      className="modal-overlay bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      <div className="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-md">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md transform transition-all">
         {/* Header */}
         <div className="relative p-6 border-b border-neutral-100">
           <div className="text-center">

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     password: '',
     role: 'traveler',
@@ -13,16 +15,17 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { register } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
-      document.body.classList.add('modal-open');
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.classList.remove('modal-open');
+      document.body.style.overflow = 'unset';
     }
     
     return () => {
-      document.body.classList.remove('modal-open');
+      document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
 
@@ -33,22 +36,26 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
 
     try {
       const response = await authAPI.register(formData);
+      console.log('Register response:', response);
       
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        
-        if (formData.role === 'guide') {
-          alert('Guide account created successfully! You can now create experiences.');
-        } else {
-          alert('Account created successfully!');
-        }
-        
+      if (response.token && response.user) {
+        await register(response.user, response.token);
         onClose();
-        window.location.reload();
+        
+        // Redirect based on user role
+        setTimeout(() => {
+          if (response.user.role === 'guide') {
+            window.location.href = '/guide-dashboard';
+          } else if (response.user.role === 'admin') {
+            window.location.href = '/admin';
+          } else {
+            window.location.href = '/experiences';
+          }
+        }, 100);
       }
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      console.error('Register error:', err);
+      setError(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -79,10 +86,10 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
 
   return (
     <div 
-      className="modal-overlay bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      <div className="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="relative p-6 border-b border-neutral-100 sticky top-0 bg-white rounded-t-3xl">
           <div className="text-center">
@@ -121,19 +128,35 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter your full name"
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  name="first_name"
+                  value={formData.first_name}
+                  onChange={handleChange}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                  placeholder="First name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  name="last_name"
+                  value={formData.last_name}
+                  onChange={handleChange}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                  placeholder="Last name"
+                  required
+                />
+              </div>
             </div>
 
             <div>
