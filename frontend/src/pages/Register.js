@@ -28,31 +28,84 @@ const Register = () => {
 
     try {
       const response = await authAPI.register(formData);
-      console.log('Register API response:', response);
+      console.log('Full register response:', response);
       
-      if (response.token && response.user) {
-        console.log('Registration successful, user:', response.user);
-        await register(response.user, response.token);
+      // Handle different response structures
+      let token, userData;
+      
+      if (response.data) {
+        // Case 1: response.data contains the data
+        if (response.data.token && response.data.user) {
+          token = response.data.token;
+          userData = response.data.user;
+        } 
+        // Case 2: data is directly in response.data
+        else if (response.data.token) {
+          token = response.data.token;
+          userData = response.data;
+        }
+        // Case 3: Different structure
+        else if (response.data.access_token) {
+          token = response.data.access_token;
+          userData = response.data.user || response.data;
+        }
+      } 
+      // Case 4: Data is directly in response
+      else if (response.token && response.user) {
+        token = response.token;
+        userData = response.user;
+      }
+      else if (response.token) {
+        token = response.token;
+        userData = response;
+      }
+      else if (response.access_token) {
+        token = response.access_token;
+        userData = response.user || response;
+      }
+      
+      console.log('Extracted token:', token);
+      console.log('Extracted user data:', userData);
+
+      if (token && userData) {
+        console.log('Registration successful, user:', userData);
+        await register(userData, token);
         
         // Redirect based on user role
         setTimeout(() => {
-          if (response.user.role === 'guide') {
+          const userRole = userData.role || 'traveler';
+          if (userRole === 'guide') {
             console.log('Redirecting to guide dashboard');
             navigate('/guide-dashboard');
-          } else if (response.user.role === 'admin') {
+          } else if (userRole === 'admin') {
             navigate('/admin');
           } else {
             navigate('/experiences');
           }
         }, 100);
       } else {
-        console.error('No token or user in response:', response);
-        setError('Registration failed: No token received');
+        console.error('No token found in response. Full response:', response);
+        setError('Registration failed: No authentication token received from server');
       }
     } catch (err) {
       console.error('Register error details:', err);
       console.error('Error response:', err.response);
-      setError(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
+      
+      // More detailed error handling
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        const errorMessage = err.response.data?.message || 
+                           err.response.data?.error ||
+                           `Server error: ${err.response.status}`;
+        setError(errorMessage);
+      } else if (err.request) {
+        // The request was made but no response was received
+        setError('No response from server. Please check if the backend is running.');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        setError(err.message || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
