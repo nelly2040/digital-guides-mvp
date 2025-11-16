@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { api } from '../services/api';
+import { bookingsAPI, experiencesAPI } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
@@ -39,7 +39,7 @@ const CheckoutForm = ({ experience, clientSecret }) => {
         setError(stripeError.message);
       } else if (paymentIntent.status === 'succeeded') {
         // Create booking record
-        await api.bookings.create({
+        await bookingsAPI.create({
           experience_id: experience.id,
           experience_date_id: tourDate,
           number_of_guests: guestCount,
@@ -159,7 +159,7 @@ const Booking = () => {
 
     const fetchExperience = async () => {
       try {
-        const expResponse = await api.experiences.getById(id);
+        const expResponse = await experiencesAPI.getById(id);
         setExperience(expResponse.experience);
         
         // Create payment intent
@@ -169,7 +169,7 @@ const Booking = () => {
           total_price: expResponse.experience.price_per_person
         };
         
-        const bookingResponse = await api.bookings.create(bookingData);
+        const bookingResponse = await bookingsAPI.create(bookingData);
         setClientSecret(bookingResponse.client_secret);
         
       } catch (error) {

@@ -35,16 +35,37 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (userData, token) => {
+    // Ensure user data has the expected structure
+    const formattedUser = {
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.first_name || userData.name?.split(' ')[0] || 'User',
+      last_name: userData.last_name || userData.name?.split(' ')[1] || '',
+      role: userData.role,
+      is_verified: userData.is_verified,
+      profile: userData.profile || {}
+    };
+    
     localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(formattedUser));
+    setUser(formattedUser);
     setIsAuthenticated(true);
   };
 
   const register = async (userData, token) => {
+    const formattedUser = {
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.first_name || userData.name?.split(' ')[0] || 'User',
+      last_name: userData.last_name || userData.name?.split(' ')[1] || '',
+      role: userData.role,
+      is_verified: userData.is_verified,
+      profile: userData.profile || {}
+    };
+    
     localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(formattedUser));
+    setUser(formattedUser);
     setIsAuthenticated(true);
   };
 

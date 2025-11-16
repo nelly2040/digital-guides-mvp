@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { experiencesAPI } from '../services/api';
 
 const Experiences = () => {
@@ -22,13 +23,25 @@ const Experiences = () => {
       console.log('Fetching experiences...');
       
       const response = await experiencesAPI.getAll();
-      console.log('Experiences response:', response.data);
+      console.log('Full experiences response:', response);
       
-      if (response.data.success) {
-        setExperiences(response.data.experiences || []);
-      } else {
-        setError('Failed to load experiences: ' + (response.data.error || 'Unknown error'));
+      // Handle different response structures
+      let experiencesData = [];
+      
+      if (response.data && Array.isArray(response.data)) {
+        // If response.data is directly an array
+        experiencesData = response.data;
+      } else if (response.data && response.data.experiences) {
+        // If response.data has experiences property
+        experiencesData = response.data.experiences;
+      } else if (response.data && response.data.data) {
+        // If response.data has data property
+        experiencesData = response.data.data;
       }
+      
+      console.log('Processed experiences:', experiencesData);
+      setExperiences(experiencesData || []);
+      
     } catch (err) {
       console.error('Error fetching experiences:', err);
       setError('Failed to load experiences. Please check if the backend is running.');
@@ -38,11 +51,14 @@ const Experiences = () => {
   };
 
   const filteredExperiences = experiences.filter(exp => {
+    if (!exp) return false;
+    
     if (filters.category && exp.category !== filters.category) return false;
-    if (filters.location && !exp.location.toLowerCase().includes(filters.location.toLowerCase())) return false;
+    if (filters.location && !exp.location?.toLowerCase().includes(filters.location.toLowerCase())) return false;
     if (filters.priceRange) {
       const [min, max] = filters.priceRange.split('-').map(Number);
-      if (exp.price < min || exp.price > max) return false;
+      const price = exp.price_per_person || exp.price;
+      if (price < min || (max && price > max)) return false;
     }
     return true;
   });
@@ -91,6 +107,7 @@ const Experiences = () => {
                 <option value="adventure">Adventure</option>
                 <option value="beach">Beach</option>
                 <option value="mountain">Mountain</option>
+                <option value="food">Food</option>
               </select>
             </div>
             
@@ -125,54 +142,65 @@ const Experiences = () => {
 
         {/* Experiences Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredExperiences.map((experience) => (
-            <div key={experience.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="h-48 bg-gray-200 relative">
-                {experience.image_url ? (
-                  <img 
-                    src={experience.image_url} 
-                    alt={experience.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                <div className="w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center" 
-                     style={{ display: experience.image_url ? 'none' : 'flex' }}>
-                  <span className="text-white font-bold text-lg">Kenya</span>
-                </div>
-                <div className="absolute top-3 left-3">
-                  <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                    {experience.category}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="p-4">
-                <h3 className="font-bold text-lg text-gray-800 mb-2 truncate">{experience.title}</h3>
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{experience.description}</p>
-                
-                <div className="flex items-center text-gray-500 text-sm mb-3">
-                  <span>📍 {experience.location}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-2xl font-bold text-green-600">${experience.price}</span>
-                    <span className="text-gray-500 text-sm">/person</span>
+          {filteredExperiences.map((experience) => {
+            if (!experience) return null;
+            
+            const price = experience.price_per_person || experience.price;
+            const title = experience.title || 'Untitled Experience';
+            const description = experience.description || experience.short_description || 'No description available';
+            const location = experience.location || 'Location not specified';
+            const category = experience.category || 'general';
+            const imageUrl = experience.cover_image || experience.image_url;
+
+            return (
+              <div key={experience.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div className="h-48 bg-gray-200 relative">
+                  {imageUrl ? (
+                    <img 
+                      src={imageUrl} 
+                      alt={title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
+                  {(!imageUrl || imageUrl === '') && (
+                    <div className="w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">Kenya</span>
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3">
+                    <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold capitalize">
+                      {category}
+                    </span>
                   </div>
-                  <button 
-                    onClick={() => window.location.href = `/experience/${experience.id}`}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    View Details
-                  </button>
+                </div>
+                
+                <div className="p-4">
+                  <h3 className="font-bold text-lg text-gray-800 mb-2 line-clamp-2 h-14">{title}</h3>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2 h-10">{description}</p>
+                  
+                  <div className="flex items-center text-gray-500 text-sm mb-3">
+                    <span>📍 {location}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-2xl font-bold text-green-600">${price}</span>
+                      <span className="text-gray-500 text-sm">/person</span>
+                    </div>
+                    <Link 
+                      to={`/experience/${experience.id}`}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      View Details
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {filteredExperiences.length === 0 && experiences.length > 0 && (
@@ -192,7 +220,7 @@ const Experiences = () => {
             <div className="text-gray-500 text-lg">No experiences available yet.</div>
             <button 
               onClick={fetchExperiences}
-              className="mt-4 text-green-600 hover:text-green-700 font-semibold"
+              className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
             >
               Refresh
             </button>

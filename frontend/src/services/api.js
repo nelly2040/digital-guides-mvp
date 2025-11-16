@@ -24,10 +24,16 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle errors
+// Add response interceptor to handle errors and normalize response
 api.interceptors.response.use(
   (response) => {
-    return response.data; // Return only the data part
+    // Normalize response structure
+    const normalizedResponse = {
+      data: response.data,
+      status: response.status,
+      success: response.data?.success !== false
+    };
+    return normalizedResponse;
   },
   (error) => {
     if (error.response?.status === 401) {
