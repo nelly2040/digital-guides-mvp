@@ -6,13 +6,14 @@ import datetime
 from functools import wraps
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
 CORS(app)
 bcrypt = Bcrypt(app)
 
-# Mock data
+# Mock data - in production, use a database
 users = []
 experiences = [
+    # Your 22 experiences here (same as before)
     {
         "id": 1,
         "title": "Maasai Mara Safari Adventure",
@@ -36,10 +37,27 @@ experiences = [
             "rating": 4.9
         }
     },
-    # Add more experiences here...
+    # Add the rest of your 21 experiences...
 ]
 
 bookings = []
+
+# Create default admin user
+def create_default_admin():
+    admin_user = {
+        'id': 1,
+        'first_name': 'Admin',
+        'last_name': 'User',
+        'email': 'admin@digitalguides.com',
+        'password': bcrypt.generate_password_hash('admin123').decode('utf-8'),
+        'role': 'admin',
+        'is_verified': True,
+        'created_at': datetime.datetime.utcnow().isoformat()
+    }
+    users.append(admin_user)
+    print("Default admin user created: admin@digitalguides.com / admin123")
+
+create_default_admin()
 
 def token_required(f):
     @wraps(f)
@@ -60,8 +78,18 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
     return decorated
 
+def admin_required(f):
+    @wraps(f)
+    @token_required
+    def decorated(current_user, *args, **kwargs):
+        if current_user['role'] != 'admin':
+            return jsonify({'message': 'Admin access required'}), 403
+        return f(current_user, *args, **kwargs)
+    return decorated
+
 # Health check endpoint
 @app.route('/api/health', methods=['GET'])
+@app.route('/api/health/', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy', 'message': 'Digital Guides API is running'})
 
@@ -85,7 +113,7 @@ def register():
         'phone': data.get('phone', ''),
         'location': data.get('location', ''),
         'bio': data.get('bio', ''),
-        'is_verified': data.get('role') == 'traveler',  # Guides need approval
+        'is_verified': data.get('role') == 'traveler',
         'created_at': datetime.datetime.utcnow().isoformat()
     }
     
@@ -133,6 +161,7 @@ def get_profile(current_user):
 
 # Experiences endpoints
 @app.route('/api/experiences', methods=['GET'])
+@app.route('/api/experiences/', methods=['GET'])
 def get_experiences():
     return jsonify({'experiences': experiences})
 
@@ -142,6 +171,11 @@ def get_experience(experience_id):
     if not experience:
         return jsonify({'message': 'Experience not found'}), 404
     return jsonify({'experience': experience})
+
+# Reviews endpoint
+@app.route('/api/reviews/experience/<int:experience_id>', methods=['GET'])
+def get_reviews(experience_id):
+    return jsonify({'reviews': []})
 
 # Bookings endpoints
 @app.route('/api/bookings', methods=['POST'])
@@ -170,6 +204,11 @@ def create_booking(current_user):
     # Add experience details to response
     booking_response = booking.copy()
     booking_response['experience'] = experience
+    booking_response['user'] = {
+        'first_name': current_user['first_name'],
+        'last_name': current_user['last_name'],
+        'email': current_user['email']
+    }
     
     return jsonify({
         'booking': booking_response,
@@ -188,5 +227,102 @@ def get_my_bookings(current_user):
     
     return jsonify({'bookings': user_bookings})
 
+# Admin endpoints
+@app.route('/api/admin/bookings', methods=['GET'])
+@admin_required
+def get_all_bookings(current_user):
+    # Add experience and user details to all bookings
+    booking_list = []
+    for booking in bookings:
+        experience = next((exp for exp in experiences if exp['id'] == booking['experience_id']), {})
+        user = next((u for u in users if u['id'] == booking['user_id']), {})
+        
+        booking_with_details = booking.copy()
+        booking_with_details['experience'] = experience
+        booking_with_details['user'] = {
+            'first_name': user.get('first_name', ''),
+            'last_name': user.get('last_name', ''),
+            'email': user.get('email', '')
+        }
+        booking_list.append(booking_with_details)
+    
+    return jsonify({'bookings': booking_list})
+
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def get_all_users(current_user):
+    users_response = []
+    for user in users:
+        user_response = {k: v for k, v in user.items() if k != 'password'}
+        # Count user bookings
+        user_bookings = [b for b in bookings if b['user_id'] == user['id']]
+        user_response['bookings_count'] = len(user_bookings)
+        users_response.append(user_response)
+    
+    return jsonify({'users': users_response})
+
+@app.route('/api/admin/statistics', methods=['GET'])
+@admin_required
+def get_statistics(current_user):
+    total_users = len(users)
+    total_bookings = len(bookings)
+    total_revenue = sum(booking['total_price'] for booking in bookings)
+    total_experiences = len(experiences)
+    
+    # Bookings by status
+    confirmed_bookings = len([b for b in bookings if b['status'] == 'confirmed'])
+    pending_bookings = len([b for b in bookings if b['status'] == 'pending'])
+    
+    # Users by role
+    travelers = len([u for u in users if u['role'] == 'traveler'])
+    guides = len([u for u in users if u['role'] == 'guide'])
+    admins = len([u for u in users if u['role'] == 'admin'])
+    
+    return jsonify({
+        'total_users': total_users,
+        'total_bookings': total_bookings,
+        'total_revenue': total_revenue,
+        'total_experiences': total_experiences,
+        'bookings_by_status': {
+            'confirmed': confirmed_bookings,
+            'pending': pending_bookings
+        },
+        'users_by_role': {
+            'travelers': travelers,
+            'guides': guides,
+            'admins': admins
+        }
+    })
+
+# Root endpoint
+@app.route('/')
+def index():
+    return jsonify({
+        'message': 'Digital Guides API',
+        'endpoints': {
+            'health': '/api/health',
+            'experiences': '/api/experiences',
+            'register': '/api/auth/register',
+            'login': '/api/auth/login',
+            'admin_bookings': '/api/admin/bookings (admin only)',
+            'admin_users': '/api/admin/users (admin only)',
+            'admin_stats': '/api/admin/statistics (admin only)'
+        },
+        'default_admin': 'admin@digitalguides.com / admin123'
+    })
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    print("Starting Digital Guides API server...")
+    print("Default admin credentials: admin@digitalguides.com / admin123")
+    print("Available endpoints:")
+    print("  GET  /api/health")
+    print("  GET  /api/experiences") 
+    print("  GET  /api/experiences/<id>")
+    print("  POST /api/auth/register")
+    print("  POST /api/auth/login")
+    print("  POST /api/bookings")
+    print("  GET  /api/bookings/my-bookings")
+    print("  GET  /api/admin/bookings (admin)")
+    print("  GET  /api/admin/users (admin)")
+    print("  GET  /api/admin/statistics (admin)")
+    app.run(debug=True, port=5000, host='0.0.0.0')

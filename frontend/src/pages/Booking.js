@@ -40,37 +40,39 @@ const Booking = () => {
     fetchExperience();
   }, [id, isAuthenticated, navigate]);
 
+// In the handleSubmit function, remove the unused response variable:
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setBookingLoading(true);
-    setError('');
-    setSuccess('');
+  e.preventDefault();
+  setBookingLoading(true);
+  setError('');
+  setSuccess('');
 
-    try {
-      const bookingData = {
-        experience_id: parseInt(id),
-        number_of_guests: formData.number_of_guests,
-        tour_date: formData.tour_date,
-        special_requests: formData.special_requests,
-        total_price: experience.price_per_person * formData.number_of_guests
-      };
+  try {
+    const bookingData = {
+      experience_id: parseInt(id),
+      number_of_guests: formData.number_of_guests,
+      tour_date: formData.tour_date,
+      special_requests: formData.special_requests,
+      total_price: experience.price_per_person * formData.number_of_guests
+    };
 
-      const response = await bookingsAPI.create(bookingData);
-      
-      setSuccess('Booking confirmed successfully!');
-      
-      // Redirect to bookings page after 2 seconds
-      setTimeout(() => {
-        navigate('/my-bookings');
-      }, 2000);
+    // Remove the unused 'response' variable assignment
+    await bookingsAPI.create(bookingData);
+    
+    setSuccess('Booking confirmed successfully!');
+    
+    // Redirect to bookings page after 2 seconds
+    setTimeout(() => {
+      navigate('/my-bookings');
+    }, 2000);
 
-    } catch (err) {
-      setError('Failed to create booking. Please try again.');
-      console.error('Booking error:', err);
-    } finally {
-      setBookingLoading(false);
-    }
-  };
+  } catch (err) {
+    setError('Failed to create booking. Please try again.');
+    console.error('Booking error:', err);
+  } finally {
+    setBookingLoading(false);
+  }
+};
 
   const handleChange = (e) => {
     setFormData({

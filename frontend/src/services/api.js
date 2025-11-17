@@ -8,9 +8,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000,
 });
 
-// Add request interceptor to include auth token
+// Request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -24,18 +25,40 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle errors
+// Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => {
-    return response.data; // Return only the data part
+    return response.data;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    if (error.response) {
+      // Server responded with error status
+      const message = error.response.data?.message || 'Request failed';
+      
+      if (error.response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+      
+      return Promise.reject({
+        message,
+        status: error.response.status,
+        data: error.response.data
+      });
+    } else if (error.request) {
+      // Request made but no response received
+      return Promise.reject({
+        message: 'Network error: Unable to connect to server',
+        status: 0
+      });
+    } else {
+      // Something else happened
+      return Promise.reject({
+        message: 'Request failed',
+        status: 0
+      });
     }
-    return Promise.reject(error);
   }
 );
 
@@ -49,7 +72,7 @@ export const authAPI = {
 
 // Experiences API
 export const experiencesAPI = {
-  getAll: (filters = {}) => api.get('/experiences'),
+  getAll: (filters = {}) => api.get('/experiences', { params: filters }),
   getById: (id) => api.get(`/experiences/${id}`),
   create: (data) => api.post('/experiences', data),
   update: (id, data) => api.put(`/experiences/${id}`, data),
@@ -75,11 +98,26 @@ export const reviewsAPI = {
 
 // Admin API
 export const adminAPI = {
+  // User Management
+  getAllUsers: () => api.get('/admin/users'),
+  
+  // Booking Management
+  getAllBookings: () => api.get('/admin/bookings'),
+  
+  // Statistics
+  getStatistics: () => api.get('/admin/statistics'),
+  
+  // Guide Management
   listGuides: () => api.get('/admin/guides'),
   approveGuide: (guideId) => api.put(`/admin/guides/${guideId}/approve`),
   getPendingGuides: () => api.get('/admin/guides/pending'),
+  
+  // Experience Management
   getPendingExperiences: () => api.get('/admin/experiences/pending'),
   approveExperience: (experienceId) => api.put(`/admin/experiences/${experienceId}/approve`),
 };
+
+// Health check
+export const healthCheck = () => api.get('/health');
 
 export default api;
