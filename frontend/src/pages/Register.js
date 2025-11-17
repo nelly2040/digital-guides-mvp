@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -16,96 +16,40 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { register } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/experiences');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    console.log('Form submitted with data:', formData);
-
     try {
       const response = await authAPI.register(formData);
-      console.log('Full register response:', response);
+      console.log('Register response:', response);
       
-      // Handle different response structures
-      let token, userData;
-      
-      if (response.data) {
-        // Case 1: response.data contains the data
-        if (response.data.token && response.data.user) {
-          token = response.data.token;
-          userData = response.data.user;
-        } 
-        // Case 2: data is directly in response.data
-        else if (response.data.token) {
-          token = response.data.token;
-          userData = response.data;
-        }
-        // Case 3: Different structure
-        else if (response.data.access_token) {
-          token = response.data.access_token;
-          userData = response.data.user || response.data;
-        }
-      } 
-      // Case 4: Data is directly in response
-      else if (response.token && response.user) {
-        token = response.token;
-        userData = response.user;
-      }
-      else if (response.token) {
-        token = response.token;
-        userData = response;
-      }
-      else if (response.access_token) {
-        token = response.access_token;
-        userData = response.user || response;
-      }
-      
-      console.log('Extracted token:', token);
-      console.log('Extracted user data:', userData);
-
-      if (token && userData) {
-        console.log('Registration successful, user:', userData);
-        await register(userData, token);
+      if (response.token && response.user) {
+        await register(response.user, response.token);
         
         // Redirect based on user role
-        setTimeout(() => {
-          const userRole = userData.role || 'traveler';
-          if (userRole === 'guide') {
-            console.log('Redirecting to guide dashboard');
-            navigate('/guide-dashboard');
-          } else if (userRole === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/experiences');
-          }
-        }, 100);
-      } else {
-        console.error('No token found in response. Full response:', response);
-        setError('Registration failed: No authentication token received from server');
+        if (response.user.role === 'guide') {
+          navigate('/guide-dashboard');
+        } else if (response.user.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/experiences');
+        }
       }
     } catch (err) {
-      console.error('Register error details:', err);
-      console.error('Error response:', err.response);
-      
-      // More detailed error handling
-      if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        const errorMessage = err.response.data?.message || 
-                           err.response.data?.error ||
-                           `Server error: ${err.response.status}`;
-        setError(errorMessage);
-      } else if (err.request) {
-        // The request was made but no response was received
-        setError('No response from server. Please check if the backend is running.');
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        setError(err.message || 'Registration failed. Please try again.');
-      }
+      console.error('Register error:', err);
+      setError(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -121,11 +65,11 @@ const Register = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-green-100 pt-20">
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="p-8 border-b border-neutral-100">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-3xl shadow-2xl p-8">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
@@ -137,10 +81,8 @@ const Register = () => {
                 Create your account to start exploring Kenya
               </p>
             </div>
-          </div>
 
-          {/* Form */}
-          <div className="p-8">
+            {/* Form */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center space-x-2">
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +96,7 @@ const Register = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    First Name *
+                    First Name
                   </label>
                   <input
                     type="text"
@@ -168,7 +110,7 @@ const Register = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Last Name *
+                    Last Name
                   </label>
                   <input
                     type="text"
@@ -184,7 +126,7 @@ const Register = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Email Address *
+                  Email Address
                 </label>
                 <input
                   type="email"
@@ -199,7 +141,7 @@ const Register = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Password *
+                  Password
                 </label>
                 <input
                   type="password"
@@ -207,22 +149,20 @@ const Register = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Create a password (min. 6 characters)"
-                  minLength="6"
+                  placeholder="Create a password"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  I want to: *
+                  I want to:
                 </label>
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
                   className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
-                  required
                 >
                   <option value="traveler">Book Experiences as Traveler</option>
                   <option value="guide">List My Experiences as Guide</option>
@@ -231,7 +171,7 @@ const Register = () => {
 
               {/* Additional fields for guides */}
               {formData.role === 'guide' && (
-                <div className="space-y-6 p-6 bg-emerald-50 rounded-xl border border-emerald-200">
+                <div className="space-y-4 p-6 bg-emerald-50 rounded-xl border border-emerald-200">
                   <h3 className="font-semibold text-emerald-800 flex items-center space-x-2 text-lg">
                     <span>🦒</span>
                     <span>Guide Information</span>

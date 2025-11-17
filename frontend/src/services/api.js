@@ -24,16 +24,10 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle errors and normalize response
+// Add response interceptor to handle errors
 api.interceptors.response.use(
   (response) => {
-    // Normalize response structure
-    const normalizedResponse = {
-      data: response.data,
-      status: response.status,
-      success: response.data?.success !== false
-    };
-    return normalizedResponse;
+    return response.data; // Return only the data part
   },
   (error) => {
     if (error.response?.status === 401) {
@@ -55,7 +49,7 @@ export const authAPI = {
 
 // Experiences API
 export const experiencesAPI = {
-  getAll: (filters = {}) => api.get('/experiences', { params: filters }),
+  getAll: (filters = {}) => api.get('/experiences'),
   getById: (id) => api.get(`/experiences/${id}`),
   create: (data) => api.post('/experiences', data),
   update: (id, data) => api.put(`/experiences/${id}`, data),
