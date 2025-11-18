@@ -1051,8 +1051,25 @@ def get_statistics(current_user):
     except Exception as e:
         return jsonify({'message': 'Failed to fetch statistics', 'error': str(e)}), 500
 
+@app.route('/')
+def index():
+    return jsonify({
+        'message': 'Digital Guides API',
+        'version': '2.0.0',
+        'status': 'running',
+        'environment': 'production',
+        'endpoints': {
+            'api_docs': '/api/health',
+            'experiences': '/api/experiences',
+            'auth': '/api/auth/register, /api/auth/login',
+            'bookings': '/api/bookings',
+            'admin': '/api/admin/*'
+        },
+        'documentation': 'Visit /api/health for API status'
+    })
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 10000))
     print("🚀 Starting Digital Guides API with Database...")
     print("📍 Default Admin: admin@digitalguides.com / admin123")
     print("✅ DATABASE: Integrated")
@@ -1064,4 +1081,5 @@ if __name__ == '__main__':
     print("☁️  CLOUDINARY: Configured and ready")
     print(f"📁 Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
     print(f"🎯 Loaded 20 Kenyan experiences ready for booking!")
+    print(f"🌐 Server running on: https://digital-guides-mvp.onrender.com")
     app.run(debug=True, host='0.0.0.0', port=port)
