@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// Use environment variable for API URL or fallback to localhost
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -8,7 +9,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 // Request interceptor to include auth token
@@ -49,7 +50,7 @@ api.interceptors.response.use(
     } else if (error.request) {
       // Request made but no response received
       return Promise.reject({
-        message: 'Network error: Unable to connect to server',
+        message: 'Network error: Unable to connect to server. Please check if the backend is running.',
         status: 0
       });
     } else {
@@ -119,5 +120,15 @@ export const adminAPI = {
 
 // Health check
 export const healthCheck = () => api.get('/health');
+
+// Test connection
+export const testConnection = async () => {
+  try {
+    const response = await healthCheck();
+    return { success: true, data: response };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
 
 export default api;

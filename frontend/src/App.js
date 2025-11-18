@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Booking from './pages/Booking';
 import './App.css';
+import MyBookings from './pages/MyBookings';
 
 function App() {
   return (
@@ -32,6 +33,8 @@ function App() {
               <Route path="/guide-dashboard" element={<GuideDashboard />} />
               <Route path="/create-experience" element={<CreateExperience />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/booking/:id" element={<Booking />} />
+              <Route path="/my-bookings" element={<MyBookings />} />
             </Routes>
           </main>
         </div>

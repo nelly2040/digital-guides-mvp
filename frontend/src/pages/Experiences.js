@@ -5,23 +5,249 @@ import { experiencesAPI } from '../services/api';
 const Experiences = () => {
   const [experiences, setExperiences] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Sample experiences data (fallback if API fails)
+  const getSampleExperiences = () => [
+    {
+      id: 1,
+      title: 'Maasai Mara Safari Adventure',
+      image: 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 450,
+      location: 'Maasai Mara',
+      duration_hours: 72,
+      category: 'Wildlife Safari',
+      rating: 4.9,
+      short_description: 'Witness the Great Migration and spot the Big Five in Africa\'s most famous wildlife reserve.'
+    },
+    {
+      id: 2,
+      title: 'Lamu Island Cultural Journey',
+      image: 'https://images.unsplash.com/photo-1589556183411-27dbe3d3ef4c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 120,
+      location: 'Lamu Archipelago',
+      duration_hours: 8,
+      category: 'Cultural Tour',
+      rating: 4.8,
+      short_description: 'Explore ancient Swahili architecture and rich coastal culture in this UNESCO World Heritage site.'
+    },
+    {
+      id: 3,
+      title: 'Mount Kenya Summit Trek',
+      image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 320,
+      location: 'Mount Kenya',
+      duration_hours: 96,
+      category: 'Adventure',
+      rating: 4.7,
+      short_description: 'Conquer Africa\'s second highest peak with experienced mountain guides through diverse ecosystems.'
+    },
+    {
+      id: 4,
+      title: 'Nairobi Food & Market Tour',
+      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 75,
+      location: 'Nairobi',
+      duration_hours: 4,
+      category: 'Food Tour',
+      rating: 4.9,
+      short_description: 'Taste authentic Kenyan cuisine and explore vibrant local markets with a food expert.'
+    },
+    {
+      id: 5,
+      title: 'Diani Beach Water Sports',
+      image: 'https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 150,
+      location: 'Diani Beach',
+      duration_hours: 6,
+      category: 'Beach & Water Sports',
+      rating: 4.8,
+      short_description: 'Enjoy snorkeling, kite surfing, and beach relaxation on Kenya\'s most beautiful coastline.'
+    },
+    {
+      id: 6,
+      title: 'Samburu Cultural Immersion',
+      image: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 200,
+      location: 'Samburu',
+      duration_hours: 48,
+      category: 'Cultural Immersion',
+      rating: 4.9,
+      short_description: 'Live with the Samburu tribe and learn about their ancient traditions and nomadic lifestyle.'
+    },
+    {
+      id: 7,
+      title: 'Amboseli Elephant Safari',
+      image: 'https://images.unsplash.com/photo-1576675466969-38eeae4b41f6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 280,
+      location: 'Amboseli National Park',
+      duration_hours: 48,
+      category: 'Wildlife Safari',
+      rating: 4.8,
+      short_description: 'Get up close with massive elephant herds with Mount Kilimanjaro as your backdrop.'
+    },
+    {
+      id: 8,
+      title: 'Lake Nakuru Flamingo Tour',
+      image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 180,
+      location: 'Lake Nakuru',
+      duration_hours: 24,
+      category: 'Bird Watching',
+      rating: 4.6,
+      short_description: 'Witness millions of flamingos painting the lake pink and spot rare white rhinos.'
+    },
+    {
+      id: 9,
+      title: 'Tsavo East & West Combo Safari',
+      image: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 350,
+      location: 'Tsavo National Parks',
+      duration_hours: 72,
+      category: 'Wildlife Safari',
+      rating: 4.7,
+      short_description: 'Explore Kenya\'s largest national park and its diverse landscapes and wildlife.'
+    },
+    {
+      id: 10,
+      title: 'Hell\'s Gate Cycling Adventure',
+      image: 'https://images.unsplash.com/photo-1576675466969-38eeae4b41f6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 90,
+      location: 'Hell\'s Gate National Park',
+      duration_hours: 8,
+      category: 'Adventure',
+      rating: 4.8,
+      short_description: 'Cycle among wildlife in the only Kenyan park where walking and cycling are permitted.'
+    },
+    {
+      id: 11,
+      title: 'Mombasa Old Town Walking Tour',
+      image: 'https://images.unsplash.com/photo-1589556183411-27dbe3d3ef4c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 60,
+      location: 'Mombasa',
+      duration_hours: 3,
+      category: 'Cultural Tour',
+      rating: 4.5,
+      short_description: 'Discover 800 years of history in the ancient streets of Mombasa\'s Old Town.'
+    },
+    {
+      id: 12,
+      title: 'Lake Naivasha Boat Safari',
+      image: 'https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 110,
+      location: 'Lake Naivasha',
+      duration_hours: 6,
+      category: 'Wildlife Safari',
+      rating: 4.7,
+      short_description: 'Cruise among hippos and diverse birdlife on this freshwater lake safari.'
+    },
+    {
+      id: 13,
+      title: 'Aberdare Mountain Forest Hike',
+      image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 130,
+      location: 'Aberdare Range',
+      duration_hours: 10,
+      category: 'Hiking',
+      rating: 4.6,
+      short_description: 'Trek through misty mountain forests and discover hidden waterfalls and wildlife.'
+    },
+    {
+      id: 14,
+      title: 'Malindi Marine Park Snorkeling',
+      image: 'https://images.unsplash.com/photo-1576675466969-38eeae4b41f6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 85,
+      location: 'Malindi',
+      duration_hours: 5,
+      category: 'Water Sports',
+      rating: 4.8,
+      short_description: 'Explore vibrant coral reefs and tropical fish in this protected marine park.'
+    },
+    {
+      id: 15,
+      title: 'Ol Pejeta Rhino Sanctuary',
+      image: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 220,
+      location: 'Laikipia Plateau',
+      duration_hours: 24,
+      category: 'Conservation',
+      rating: 4.9,
+      short_description: 'Meet the last two northern white rhinos and support conservation efforts.'
+    },
+    {
+      id: 16,
+      title: 'Saiwa Swamp Monkey Trek',
+      image: 'https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 95,
+      location: 'Saiwa Swamp',
+      duration_hours: 6,
+      category: 'Wildlife Safari',
+      rating: 4.5,
+      short_description: 'Spot rare semi-aquatic sitatunga antelopes in Kenya\'s smallest national park.'
+    },
+    {
+      id: 17,
+      title: 'Kakamega Rainforest Exploration',
+      image: 'https://images.unsplash.com/photo-1589556183411-27dbe3d3ef4c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 140,
+      location: 'Kakamega Forest',
+      duration_hours: 8,
+      category: 'Nature Walk',
+      rating: 4.7,
+      short_description: 'Discover Kenya\'s only tropical rainforest with its unique flora and fauna.'
+    },
+    {
+      id: 18,
+      title: 'Watamu Turtle Conservation',
+      image: 'https://images.unsplash.com/photo-1576675466969-38eeae4b41f6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 70,
+      location: 'Watamu',
+      duration_hours: 4,
+      category: 'Conservation',
+      rating: 4.9,
+      short_description: 'Participate in turtle conservation and witness these magnificent creatures.'
+    },
+    {
+      id: 19,
+      title: 'Meru National Park Safari',
+      image: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 260,
+      location: 'Meru National Park',
+      duration_hours: 48,
+      category: 'Wildlife Safari',
+      rating: 4.6,
+      short_description: 'Explore the wilderness that inspired Joy Adamson\'s "Born Free" story.'
+    },
+    {
+      id: 20,
+      title: 'Chyulu Hills Green Safari',
+      image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+      price_per_person: 190,
+      location: 'Chyulu Hills',
+      duration_hours: 24,
+      category: 'Eco Tourism',
+      rating: 4.8,
+      short_description: 'Hike through "green hills of Africa" with stunning views of Kilimanjaro.'
+    }
+  ];
 
   useEffect(() => {
     const fetchExperiences = async () => {
       try {
         const response = await experiencesAPI.getAll();
         console.log('Experiences response:', response);
-        setExperiences(response.experiences || []);
+        setExperiences(response.experiences || getSampleExperiences());
       } catch (err) {
         console.error('Error fetching experiences:', err);
-        // The API will automatically use mock data, so no error needed
+        setError('Failed to load experiences. Showing sample experiences instead.');
+        setExperiences(getSampleExperiences());
       } finally {
         setLoading(false);
       }
     };
 
     fetchExperiences();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -50,6 +276,12 @@ const Experiences = () => {
       {/* Experiences Grid */}
       <section className="py-16 bg-gradient-to-br from-neutral-50 to-neutral-100">
         <div className="container mx-auto px-4">
+          {error && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg mb-8 text-center">
+              {error}
+            </div>
+          )}
+          
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">
               Featured <span className="text-emerald-600">Experiences</span>
@@ -92,17 +324,13 @@ const Experiences = () => {
                   <p className="text-neutral-500 mb-4 leading-relaxed">
                     {experience.short_description}
                   </p>
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex justify-between items-center">
                     <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">
                       {experience.category}
                     </span>
-                    <span className="text-neutral-500">
-                      {experience.duration_hours >= 24 
-                        ? `${Math.floor(experience.duration_hours / 24)} days` 
-                        : `${experience.duration_hours} hours`}
-                    </span>
+                    <span className="text-neutral-500">{Math.floor(experience.duration_hours / 24)} days</span>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 mt-4">
                     <Link 
                       to={`/experience/${experience.id}`}
                       className="flex-1 bg-emerald-100 text-emerald-700 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:bg-emerald-200 text-center"
