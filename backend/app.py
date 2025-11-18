@@ -734,6 +734,65 @@ def upload_image(current_user):
     except Exception as e:
         return jsonify({'message': 'Upload failed', 'error': str(e)}), 500
 
+# Contact guide endpoint
+@app.route('/api/contact/guide', methods=['POST'])
+@token_required
+def contact_guide(current_user):
+    try:
+        data = request.get_json()
+        guide_id = data.get('guide_id')
+        message = data.get('message')
+        
+        if not guide_id or not message:
+            return jsonify({'message': 'Guide ID and message are required'}), 400
+        
+        guide = User.query.get(guide_id)
+        if not guide or guide.role != UserRole.GUIDE:
+            return jsonify({'message': 'Guide not found'}), 404
+        
+        # In a real app, you would send an email or notification here
+        # For now, we'll just log the message
+        print(f"Message from {current_user.email} to guide {guide.email}: {message}")
+        
+        return jsonify({
+            'message': 'Message sent to guide successfully',
+            'guide_name': f"{guide.first_name} {guide.last_name}",
+            'guide_email': guide.email
+        })
+        
+    except Exception as e:
+        return jsonify({'message': 'Failed to send message', 'error': str(e)}), 500
+
+# Delete booking endpoint
+@app.route('/api/bookings/<int:booking_id>', methods=['DELETE'])
+@token_required
+def delete_booking(current_user, booking_id):
+    try:
+        booking = Booking.query.get(booking_id)
+        
+        if not booking:
+            return jsonify({'message': 'Booking not found'}), 404
+        
+        # Check if user owns the booking or is admin
+        if booking.traveler_id != current_user.id and current_user.role != UserRole.ADMIN:
+            return jsonify({'message': 'Access denied'}), 403
+        
+        # Restore available slots
+        experience_date = ExperienceDate.query.get(booking.experience_date_id)
+        if experience_date:
+            experience_date.available_slots += booking.number_of_guests
+        
+        db.session.delete(booking)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Booking cancelled successfully',
+            'booking_id': booking_id
+        })
+        
+    except Exception as e:
+        return jsonify({'message': 'Failed to cancel booking', 'error': str(e)}), 500
+
 # Experiences endpoint
 @app.route('/api/experiences', methods=['GET'])
 def get_experiences():
@@ -1000,6 +1059,8 @@ if __name__ == '__main__':
     print("✅ ADVANCED SEARCH: Available at /api/experiences/search")
     print("✅ CALENDAR INTEGRATION: Available at /api/experiences/<id>/availability")
     print("✅ IMAGE UPLOAD: Available at /api/upload")
+    print("✅ CONTACT GUIDE: Available at /api/contact/guide")
+    print("✅ DELETE BOOKING: Available at /api/bookings/<id> (DELETE)")
     print("☁️  CLOUDINARY: Configured and ready")
     print(f"📁 Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
     print(f"🎯 Loaded 20 Kenyan experiences ready for booking!")

@@ -130,25 +130,10 @@ export const bookingsAPI = {
     return apiRequest('/api/admin/bookings');
   },
 
-  // Update booking status
-  updateStatus: async (bookingId, status) => {
-    return apiRequest(`/api/bookings/${bookingId}`, {
-      method: 'PUT',
-      body: { status },
-    });
-  },
-
   // Delete booking
   delete: async (bookingId) => {
     return apiRequest(`/api/bookings/${bookingId}`, {
       method: 'DELETE',
-    });
-  },
-
-  // Cancel booking
-  cancel: async (bookingId) => {
-    return apiRequest(`/api/bookings/${bookingId}/cancel`, {
-      method: 'PUT',
     });
   },
 };
@@ -164,18 +149,6 @@ export const adminAPI = {
   getStatistics: async () => {
     return apiRequest('/api/admin/statistics');
   },
-
-  // Get pending experiences
-  getPendingExperiences: async () => {
-    return apiRequest('/api/admin/experiences/pending');
-  },
-
-  // Approve experience
-  approveExperience: async (experienceId) => {
-    return apiRequest(`/api/admin/experiences/${experienceId}/approve`, {
-      method: 'PUT',
-    });
-  },
 };
 
 // Image upload API
@@ -186,31 +159,19 @@ export const uploadAPI = {
     const formData = new FormData();
     formData.append('image', file);
 
-    return apiRequest('/api/upload', {
+    const response = await fetch(`${API_URL}/api/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
       },
       body: formData,
     });
-  },
 
-  // Upload multiple images
-  uploadMultiple: async (files) => {
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
-    
-    files.forEach(file => {
-      formData.append('images', file);
-    });
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
 
-    return apiRequest('/api/upload/multiple', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
-    });
+    return response.json();
   },
 };
 
@@ -222,17 +183,6 @@ export const contactAPI = {
       method: 'POST',
       body: {
         guide_id: guideId,
-        message: message,
-      },
-    });
-  },
-
-  // Send booking inquiry
-  sendBookingInquiry: async (bookingId, message) => {
-    return apiRequest('/api/contact/booking', {
-      method: 'POST',
-      body: {
-        booking_id: bookingId,
         message: message,
       },
     });
@@ -264,20 +214,16 @@ export const apiUtils = {
     return user.role === 'guide';
   },
 
+  // Check if user is traveler
+  isTraveler: () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user.role === 'traveler';
+  },
+
   // Logout
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
   },
-};
-
-export default {
-  authAPI,
-  experiencesAPI,
-  bookingsAPI,
-  adminAPI,
-  uploadAPI,
-  contactAPI,
-  apiUtils,
 };
