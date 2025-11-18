@@ -9,8 +9,6 @@ const ExperienceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [availableDates, setAvailableDates] = useState([]);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [numberOfGuests, setNumberOfGuests] = useState(1);
   const [bookingLoading, setBookingLoading] = useState(false);
 
   useEffect(() => {

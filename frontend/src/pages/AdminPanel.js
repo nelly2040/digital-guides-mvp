@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminAPI } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -13,15 +13,8 @@ const AdminPanel = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      navigate('/');
-      return;
-    }
-    fetchData();
-  }, [user, navigate, activeTab]);
-
-  const fetchData = async () => {
+  // Use useCallback to memoize the fetchData function
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -42,7 +35,22 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]); // Add activeTab as dependency
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      navigate('/');
+      return;
+    }
+    fetchData();
+  }, [user, navigate, fetchData]); // Now fetchData is properly included
+
+  // Also refetch data when activeTab changes
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      fetchData();
+    }
+  }, [activeTab, user, fetchData]);
 
   if (loading) {
     return (
@@ -221,11 +229,11 @@ const AdminPanel = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Confirmed:</span>
-                    <span className="font-semibold">{statistics.bookings_by_status.confirmed}</span>
+                    <span className="font-semibold">{statistics.bookings_by_status?.confirmed || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Pending:</span>
-                    <span className="font-semibold">{statistics.bookings_by_status.pending}</span>
+                    <span className="font-semibold">{statistics.bookings_by_status?.pending || 0}</span>
                   </div>
                 </div>
               </div>
@@ -235,15 +243,15 @@ const AdminPanel = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Travelers:</span>
-                    <span className="font-semibold">{statistics.users_by_role.travelers}</span>
+                    <span className="font-semibold">{statistics.users_by_role?.travelers || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Guides:</span>
-                    <span className="font-semibold">{statistics.users_by_role.guides}</span>
+                    <span className="font-semibold">{statistics.users_by_role?.guides || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Admins:</span>
-                    <span className="font-semibold">{statistics.users_by_role.admins}</span>
+                    <span className="font-semibold">{statistics.users_by_role?.admins || 0}</span>
                   </div>
                 </div>
               </div>
