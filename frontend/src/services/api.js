@@ -1,134 +1,283 @@
-import axios from 'axios';
+// API configuration
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-// Use environment variable for API URL or fallback to localhost
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Helper function for API calls
+const apiRequest = async (endpoint, options = {}) => {
+  const token = localStorage.getItem('token');
+  
+  const config = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    },
+    ...options,
+  };
 
-// Create axios instance
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 15000,
-});
-
-// Request interceptor to include auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+  // Add body for non-GET requests
+  if (options.body && config.headers['Content-Type'] === 'application/json') {
+    config.body = JSON.stringify(options.body);
   }
-);
 
-// Response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  (error) => {
-    if (error.response) {
-      // Server responded with error status
-      const message = error.response.data?.message || 'Request failed';
-      
-      if (error.response.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      }
-      
-      return Promise.reject({
-        message,
-        status: error.response.status,
-        data: error.response.data
-      });
-    } else if (error.request) {
-      // Request made but no response received
-      return Promise.reject({
-        message: 'Network error: Unable to connect to server. Please check if the backend is running.',
-        status: 0
-      });
-    } else {
-      // Something else happened
-      return Promise.reject({
-        message: 'Request failed',
-        status: 0
-      });
-    }
-  }
-);
-
-// Auth API
-export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
-  register: (userData) => api.post('/auth/register', userData),
-  getProfile: () => api.get('/auth/profile'),
-  updateProfile: (data) => api.put('/auth/profile', data),
-};
-
-// Experiences API
-export const experiencesAPI = {
-  getAll: (filters = {}) => api.get('/experiences', { params: filters }),
-  getById: (id) => api.get(`/experiences/${id}`),
-  create: (data) => api.post('/experiences', data),
-  update: (id, data) => api.put(`/experiences/${id}`, data),
-  delete: (id) => api.delete(`/experiences/${id}`),
-  getByGuide: () => api.get('/experiences/guide'),
-  getMyExperiences: () => api.get('/experiences/my-experiences'),
-};
-
-// Bookings API
-export const bookingsAPI = {
-  create: (data) => api.post('/bookings', data),
-  getUserBookings: () => api.get('/bookings/user'),
-  getGuideBookings: () => api.get('/bookings/guide'),
-  getMyBookings: () => api.get('/bookings/my-bookings'),
-  updateStatus: (id, status) => api.put(`/bookings/${id}/status`, { status }),
-};
-
-// Reviews API
-export const reviewsAPI = {
-  getByExperience: (experienceId) => api.get(`/reviews/experience/${experienceId}`),
-  create: (data) => api.post('/reviews', data),
-};
-
-// Admin API
-export const adminAPI = {
-  // User Management
-  getAllUsers: () => api.get('/admin/users'),
-  
-  // Booking Management
-  getAllBookings: () => api.get('/admin/bookings'),
-  
-  // Statistics
-  getStatistics: () => api.get('/admin/statistics'),
-  
-  // Guide Management
-  listGuides: () => api.get('/admin/guides'),
-  approveGuide: (guideId) => api.put(`/admin/guides/${guideId}/approve`),
-  getPendingGuides: () => api.get('/admin/guides/pending'),
-  
-  // Experience Management
-  getPendingExperiences: () => api.get('/admin/experiences/pending'),
-  approveExperience: (experienceId) => api.put(`/admin/experiences/${experienceId}/approve`),
-};
-
-// Health check
-export const healthCheck = () => api.get('/health');
-
-// Test connection
-export const testConnection = async () => {
   try {
-    const response = await healthCheck();
-    return { success: true, data: response };
+    const response = await fetch(`${API_URL}${endpoint}`, config);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return data;
   } catch (error) {
-    return { success: false, error: error.message };
+    console.error('API request failed:', error);
+    throw error;
   }
 };
 
-export default api;
+// Auth API calls
+export const authAPI = {
+  register: async (userData) => {
+    return apiRequest('/api/auth/register', {
+      method: 'POST',
+      body: userData,
+    });
+  },
+
+  login: async (credentials) => {
+    return apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: credentials,
+    });
+  },
+
+  getProfile: async () => {
+    return apiRequest('/api/auth/profile');
+  },
+};
+
+// Experiences API calls
+export const experiencesAPI = {
+  // Get all experiences
+  getAll: async () => {
+    return apiRequest('/api/experiences');
+  },
+
+  // Get single experience by ID
+  getById: async (id) => {
+    return apiRequest(`/api/experiences/${id}`);
+  },
+
+  // Get availability for an experience
+  getAvailability: async (experienceId, startDate = null, endDate = null) => {
+    let url = `/api/experiences/${experienceId}/availability`;
+    
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    return apiRequest(url);
+  },
+
+  // Search experiences
+  search: async (filters = {}) => {
+    const params = new URLSearchParams();
+    
+    if (filters.category) params.append('category', filters.category);
+    if (filters.location) params.append('location', filters.location);
+    if (filters.minPrice) params.append('min_price', filters.minPrice);
+    if (filters.maxPrice) params.append('max_price', filters.maxPrice);
+    if (filters.date) params.append('date', filters.date);
+    if (filters.availability) params.append('availability', filters.availability);
+    
+    return apiRequest(`/api/experiences/search?${params.toString()}`);
+  },
+
+  // Create experience (for guides)
+  create: async (experienceData) => {
+    return apiRequest('/api/experiences', {
+      method: 'POST',
+      body: experienceData,
+    });
+  },
+
+  // Get guide's experiences
+  getMyExperiences: async () => {
+    return apiRequest('/api/experiences/my-experiences');
+  },
+};
+
+// Bookings API calls
+export const bookingsAPI = {
+  // Create booking
+  create: async (bookingData) => {
+    return apiRequest('/api/bookings', {
+      method: 'POST',
+      body: bookingData,
+    });
+  },
+
+  // Get user's bookings
+  getMyBookings: async () => {
+    return apiRequest('/api/bookings/my-bookings');
+  },
+
+  // Get all bookings (admin only)
+  getAll: async () => {
+    return apiRequest('/api/admin/bookings');
+  },
+
+  // Update booking status
+  updateStatus: async (bookingId, status) => {
+    return apiRequest(`/api/bookings/${bookingId}`, {
+      method: 'PUT',
+      body: { status },
+    });
+  },
+
+  // Delete booking
+  delete: async (bookingId) => {
+    return apiRequest(`/api/bookings/${bookingId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Cancel booking
+  cancel: async (bookingId) => {
+    return apiRequest(`/api/bookings/${bookingId}/cancel`, {
+      method: 'PUT',
+    });
+  },
+};
+
+// Admin API calls
+export const adminAPI = {
+  // Get all users
+  getUsers: async () => {
+    return apiRequest('/api/admin/users');
+  },
+
+  // Get statistics
+  getStatistics: async () => {
+    return apiRequest('/api/admin/statistics');
+  },
+
+  // Get pending experiences
+  getPendingExperiences: async () => {
+    return apiRequest('/api/admin/experiences/pending');
+  },
+
+  // Approve experience
+  approveExperience: async (experienceId) => {
+    return apiRequest(`/api/admin/experiences/${experienceId}/approve`, {
+      method: 'PUT',
+    });
+  },
+};
+
+// Image upload API
+export const uploadAPI = {
+  // Upload single image
+  uploadImage: async (file) => {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('image', file);
+
+    return apiRequest('/api/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  },
+
+  // Upload multiple images
+  uploadMultiple: async (files) => {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    
+    files.forEach(file => {
+      formData.append('images', file);
+    });
+
+    return apiRequest('/api/upload/multiple', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  },
+};
+
+// Contact/messaging API
+export const contactAPI = {
+  // Send message to guide
+  sendMessage: async (guideId, message) => {
+    return apiRequest('/api/contact/guide', {
+      method: 'POST',
+      body: {
+        guide_id: guideId,
+        message: message,
+      },
+    });
+  },
+
+  // Send booking inquiry
+  sendBookingInquiry: async (bookingId, message) => {
+    return apiRequest('/api/contact/booking', {
+      method: 'POST',
+      body: {
+        booking_id: bookingId,
+        message: message,
+      },
+    });
+  },
+};
+
+// Utility functions
+export const apiUtils = {
+  // Check if user is authenticated
+  isAuthenticated: () => {
+    return !!localStorage.getItem('token');
+  },
+
+  // Get user role
+  getUserRole: () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user.role;
+  },
+
+  // Check if user is admin
+  isAdmin: () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user.role === 'admin';
+  },
+
+  // Check if user is guide
+  isGuide: () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user.role === 'guide';
+  },
+
+  // Logout
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  },
+};
+
+export default {
+  authAPI,
+  experiencesAPI,
+  bookingsAPI,
+  adminAPI,
+  uploadAPI,
+  contactAPI,
+  apiUtils,
+};
