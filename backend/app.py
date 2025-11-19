@@ -6,37 +6,61 @@ import datetime
 from functools import wraps
 import os
 from dotenv import load_dotenv
-from models import db, bcrypt, User, Experience, Booking, ExperienceDate, UserRole, BookingStatus
-from dateutil.parser import parse
 import json
 
-# Cloudinary imports
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+# Try to import psycopg2, fallback to sqlite
+try:
+    import psycopg2
+    DB_TYPE = "postgresql"
+except ImportError:
+    DB_TYPE = "sqlite"
+    print("⚠️  psycopg2 not available, using SQLite")
+
+# Import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
+
+# Initialize extensions
+db = SQLAlchemy()
+bcrypt = Bcrypt()
+
+# Import models after db initialization
+from models import User, Experience, Booking, ExperienceDate, UserRole, BookingStatus
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'digital-guides-secret-key-2024')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///digital_guides.db')
+
+# Database configuration
+if os.getenv('DATABASE_URL'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL').replace('postgres://', 'postgresql://')
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///digital_guides.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize extensions
+# Initialize extensions with app
 db.init_app(app)
 bcrypt.init_app(app)
 CORS(app)
 
-# Configure Cloudinary
-cloudinary.config( 
-    cloud_name="dtzryzjdq", 
-    api_key="422317742489724", 
-    api_secret="k05-L8gM7IkN8g6Rm6Mwx-ANzxo",
-    secure=True
-)
+# Cloudinary configuration
+try:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    
+    cloudinary.config( 
+        cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME', 'dtzryzjdq'), 
+        api_key=os.getenv('CLOUDINARY_API_KEY', '422317742489724'), 
+        api_secret=os.getenv('CLOUDINARY_API_SECRET', 'k05-L8gM7IkN8g6Rm6Mwx-ANzxo'),
+        secure=True
+    )
+    CLOUDINARY_AVAILABLE = True
+except ImportError:
+    CLOUDINARY_AVAILABLE = False
+    print("⚠️ Cloudinary not available")
 
-# Check if Cloudinary is available
-CLOUDINARY_AVAILABLE = True
 
 # Authentication decorators
 def token_required(f):
