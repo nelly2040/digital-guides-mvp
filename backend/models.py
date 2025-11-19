@@ -34,10 +34,6 @@ class User(db.Model):
     is_verified = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
-    experiences = db.relationship('Experience', backref='guide', lazy=True)
-    bookings = db.relationship('Booking', backref='traveler', lazy=True)
-    
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
     
@@ -82,10 +78,6 @@ class Experience(db.Model):
     is_approved = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    bookings = db.relationship('Booking', backref='experience', lazy=True)
-    available_dates = db.relationship('ExperienceDate', backref='experience', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
         guide_data = None
