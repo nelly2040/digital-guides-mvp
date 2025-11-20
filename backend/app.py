@@ -1089,7 +1089,9 @@ def index():
 
 if __name__ == '__main__':
     with app.app_context():
-        init_db()  # <-- THIS MUST RUN BEFORE ANY QUERY
+        init_db()  # <-- now safe
+    app.run(debug=True, host='0.0.0.0', port=port)
+
     
     port = int(os.environ.get('PORT', 10000))
     print("🚀 Starting Digital Guides API with Database...")
