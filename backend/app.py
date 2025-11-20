@@ -5,6 +5,7 @@ import jwt
 import datetime
 from functools import wraps
 import os
+import re
 from dotenv import load_dotenv
 import json
 
@@ -93,27 +94,21 @@ def admin_required(f):
 
 # Initialize database
 def init_db():
-    with app.app_context():
-        db.create_all()
-        
-        # Create default admin if not exists
-        admin = User.query.filter_by(email='admin@digitalguides.com').first()
-        if not admin:
-            admin = User(
-                first_name='Admin',
-                last_name='User',
-                email='admin@digitalguides.com',
-                role=UserRole.ADMIN,
-                is_verified=True
-            )
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("✅ Default admin created: admin@digitalguides.com / admin123")
-        
-        # Create sample data if no experiences exist
-        if Experience.query.count() == 0:
-            create_sample_data()
+    db.create_all()
+    
+    admin = User.query.filter_by(email='admin@digitalguides.com').first()
+    if not admin:
+        admin = User(
+            first_name='Admin',
+            last_name='User',
+            email='admin@digitalguides.com',
+            role=UserRole.ADMIN,
+            is_verified=True
+        )
+        admin.set_password('admin123')
+        db.session.add(admin)
+        db.session.commit()
+
 
 def create_sample_data():
     """Create comprehensive sample data with all 20 Kenyan experiences"""
@@ -1093,6 +1088,9 @@ def index():
     })
 
 if __name__ == '__main__':
+    with app.app_context():
+        init_db()  # <-- THIS MUST RUN BEFORE ANY QUERY
+    
     port = int(os.environ.get('PORT', 10000))
     print("🚀 Starting Digital Guides API with Database...")
     print("📍 Default Admin: admin@digitalguides.com / admin123")
@@ -1106,4 +1104,5 @@ if __name__ == '__main__':
     print(f"📁 Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
     print(f"🎯 Loaded 20 Kenyan experiences ready for booking!")
     print(f"🌐 Server running on: https://digital-guides-mvp.onrender.com")
+    
     app.run(debug=True, host='0.0.0.0', port=port)
