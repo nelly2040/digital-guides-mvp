@@ -1,38 +1,24 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-import jwt
-import datetime
-from functools import wraps
+from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-import json
-
-# Try to import psycopg2, fallback to sqlite
-try:
-    import psycopg2
-    DB_TYPE = "postgresql"
-except ImportError:
-    DB_TYPE = "sqlite"
-    print("⚠️  psycopg2 not available, using SQLite")
-
-# Import SQLAlchemy
-from flask_sqlalchemy import SQLAlchemy
 
 load_dotenv()
 
-# 1️⃣ Create Flask app first
+# 1️⃣ Create the Flask app first
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'digital-guides-secret-key-2024')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///digital_guides.db').replace('postgres://', 'postgresql://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# 2️⃣ Initialize extensions with app
+# 2️⃣ Now initialize extensions
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 CORS(app)
 
-# 3️⃣ Import models after db and app exist
+# 3️⃣ Then import models
 from models import User, Experience, Booking, ExperienceDate, UserRole, BookingStatus
 
 
