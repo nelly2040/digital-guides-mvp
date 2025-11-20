@@ -1088,12 +1088,8 @@ def index():
     })
 
 if __name__ == '__main__':
-    with app.app_context():
-        init_db()  # <-- now safe
-    app.run(debug=True, host='0.0.0.0', port=port)
-
-    
     port = int(os.environ.get('PORT', 10000))
+
     print("🚀 Starting Digital Guides API with Database...")
     print("📍 Default Admin: admin@digitalguides.com / admin123")
     print("✅ DATABASE: Integrated")
@@ -1106,5 +1102,10 @@ if __name__ == '__main__':
     print(f"📁 Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
     print(f"🎯 Loaded 20 Kenyan experiences ready for booking!")
     print(f"🌐 Server running on: https://digital-guides-mvp.onrender.com")
-    
+
+    # 🔥 FIX: Init DB safely
+    with app.app_context():
+        init_db()
+
+    # 🔥 Start server only ONCE
     app.run(debug=True, host='0.0.0.0', port=port)
