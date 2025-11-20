@@ -1092,20 +1092,13 @@ if __name__ == '__main__':
 
     print("🚀 Starting Digital Guides API with Database...")
     print("📍 Default Admin: admin@digitalguides.com / admin123")
-    print("✅ DATABASE: Integrated")
-    print("✅ ADVANCED SEARCH: Available at /api/experiences/search")
-    print("✅ CALENDAR INTEGRATION: Available at /api/experiences/<id>/availability")
-    print("✅ IMAGE UPLOAD: Available at /api/upload")
-    print("✅ CONTACT GUIDE: Available at /api/contact/guide")
-    print("✅ DELETE BOOKING: Available at /api/bookings/<id> (DELETE)")
     print("☁️  CLOUDINARY: Configured and ready")
     print(f"📁 Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
-    print(f"🎯 Loaded 20 Kenyan experiences ready for booking!")
     print(f"🌐 Server running on: https://digital-guides-mvp.onrender.com")
 
-    # 🔥 FIX: Init DB safely
+    # Initialize DB ONLY inside app context
     with app.app_context():
         init_db()
 
-    # 🔥 Start server only ONCE
+    # Start the API server
     app.run(debug=True, host='0.0.0.0', port=port)
