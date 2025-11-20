@@ -5,7 +5,6 @@ import jwt
 import datetime
 from functools import wraps
 import os
-import re
 from dotenv import load_dotenv
 import json
 
@@ -20,30 +19,22 @@ except ImportError:
 # Import SQLAlchemy
 from flask_sqlalchemy import SQLAlchemy
 
-# Initialize extensions
-db = SQLAlchemy()
-bcrypt = Bcrypt()
-
-# Import models after db initialization
-from models import User, Experience, Booking, ExperienceDate, UserRole, BookingStatus
-
 load_dotenv()
 
+# 1️⃣ Create Flask app first
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'digital-guides-secret-key-2024')
-
-# Database configuration
-if os.getenv('DATABASE_URL'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL').replace('postgres://', 'postgresql://')
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///digital_guides.db'
-
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///digital_guides.db').replace('postgres://', 'postgresql://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize extensions with app
-db.init_app(app)
-bcrypt.init_app(app)
+# 2️⃣ Initialize extensions with app
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
 CORS(app)
+
+# 3️⃣ Import models after db and app exist
+from models import User, Experience, Booking, ExperienceDate, UserRole, BookingStatus
+
 
 # Cloudinary configuration
 try:
@@ -1093,9 +1084,7 @@ if __name__ == '__main__':
     print(f"📁 Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
     print(f"🌐 Server running on: https://digital-guides-mvp.onrender.com")
 
-    # Initialize DB ONLY inside app context
     with app.app_context():
         init_db()
 
-    # Start the API server
     app.run(debug=True, host='0.0.0.0', port=port)
