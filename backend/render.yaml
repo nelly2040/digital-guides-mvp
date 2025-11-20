@@ -6,10 +6,12 @@ services:
     buildCommand: |
       pip install -r requirements.txt
     startCommand: |
-      python app.py
+      gunicorn app:app --bind 0.0.0.0:$PORT
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.8
+      - key: DATABASE_URL
+        fromDatabase:
+          name: digital_guides_db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: CLOUDINARY_CLOUD_NAME
@@ -18,8 +20,3 @@ services:
         value: 422317742489724
       - key: CLOUDINARY_API_SECRET
         value: k05-L8gM7IkN8g6Rm6Mwx-ANzxo
-databases:
-  - name: digital_guides_db
-    plan: free
-    databaseName: digital_guides
-    user: digital_guides_user
