@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: digital-guides-api
+    env: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      python app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dtzryzjdq
+      - key: CLOUDINARY_API_KEY
+        value: 422317742489724
+      - key: CLOUDINARY_API_SECRET
+        value: k05-L8gM7IkN8g6Rm6Mwx-ANzxo
+databases:
+  - name: digital_guides_db
+    plan: free
+    databaseName: digital_guides
+    user: digital_guides_user

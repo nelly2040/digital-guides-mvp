@@ -6,6 +6,6 @@ Flask-Migrate==4.0.5
 PyJWT==2.8.0
 python-dotenv==1.0.0
 python-dateutil==2.8.2
-psycopg2==2.9.7
+psycopg2-binary==2.9.9  # Updated version
 cloudinary==1.36.0
 gunicorn==21.2.0
