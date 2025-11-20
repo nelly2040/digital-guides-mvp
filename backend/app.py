@@ -621,9 +621,6 @@ def create_sample_data():
     db.session.commit()
     print(f"✅ Created {len(experiences_data)} sample experiences with availability dates")
 
-# Initialize the database
-init_db()
-
 # Health check endpoint
 @app.route('/api/health', methods=['GET'])
 def health_check():
