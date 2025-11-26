@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { experiencesAPI } from '../services/api';
 
 const Experiences = () => {
   const [experiences, setExperiences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  // Sample experiences data (fallback if API fails)
+  // Complete sample experiences data (fallback if API fails)
   const getSampleExperiences = () => [
     {
       id: 1,
@@ -231,23 +232,31 @@ const Experiences = () => {
     }
   ];
 
-  useEffect(() => {
-    const fetchExperiences = async () => {
-      try {
-        const response = await experiencesAPI.getAll();
-        console.log('Experiences response:', response);
-        setExperiences(response.experiences || getSampleExperiences());
-      } catch (err) {
-        console.error('Error fetching experiences:', err);
-        setError('Failed to load experiences. Showing sample experiences instead.');
-        setExperiences(getSampleExperiences());
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchExperiences = async () => {
+    try {
+      const response = await experiencesAPI.getAll();
+      console.log('Experiences response:', response);
+      setExperiences(response.experiences || getSampleExperiences());
+    } catch (err) {
+      console.error('Error fetching experiences:', err);
+      setError('Failed to load experiences. Showing sample experiences instead.');
+      setExperiences(getSampleExperiences());
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchExperiences();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleViewDetails = (experienceId) => {
+    navigate(`/experience/${experienceId}`);
+  };
+
+  const handleBookNow = (experienceId) => {
+    navigate(`/booking/${experienceId}`);
+  };
 
   if (loading) {
     return (
@@ -284,24 +293,27 @@ const Experiences = () => {
           
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">
-              Featured <span className="text-emerald-600">Experiences</span>
+              {experiences.length} Amazing <span className="text-emerald-600">Experiences</span>
             </h2>
             <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
-              Handpicked adventures curated by our local expert guides
+              Handpicked adventures curated by our local expert guides across Kenya
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {experiences.map((experience) => (
               <div 
                 key={experience.id} 
-                className="group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105"
+                className="group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105 border border-gray-100"
               >
                 <div className="relative overflow-hidden">
                   <img 
                     src={experience.image} 
                     alt={experience.title} 
-                    className="w-full h-64 object-cover transform group-hover:scale-110 transition-transform duration-500" 
+                    className="w-full h-48 object-cover transform group-hover:scale-110 transition-transform duration-500" 
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
+                    }}
                   />
                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
                     <span className="text-emerald-600 font-bold">${experience.price_per_person}</span>
@@ -313,36 +325,40 @@ const Experiences = () => {
                 </div>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-2xl font-bold text-neutral-900 group-hover:text-emerald-600 transition-colors duration-300">
+                    <h3 className="text-xl font-bold text-neutral-900 group-hover:text-emerald-600 transition-colors duration-300 line-clamp-2">
                       {experience.title}
                     </h3>
                   </div>
-                  <p className="text-neutral-600 mb-4 flex items-center space-x-2">
+                  <p className="text-neutral-600 mb-3 flex items-center space-x-2">
                     <span>📍</span>
-                    <span>{experience.location}</span>
+                    <span className="text-sm">{experience.location}</span>
                   </p>
-                  <p className="text-neutral-500 mb-4 leading-relaxed">
+                  <p className="text-neutral-500 mb-4 leading-relaxed text-sm line-clamp-2">
                     {experience.short_description}
                   </p>
-                  <div className="flex justify-between items-center">
-                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs font-medium">
                       {experience.category}
                     </span>
-                    <span className="text-neutral-500">{Math.floor(experience.duration_hours / 24)} days</span>
+                    <span className="text-neutral-500 text-sm">
+                      {experience.duration_hours >= 24 
+                        ? `${Math.floor(experience.duration_hours / 24)} days` 
+                        : `${experience.duration_hours} hours`}
+                    </span>
                   </div>
-                  <div className="flex space-x-2 mt-4">
-                    <Link 
-                      to={`/experience/${experience.id}`}
-                      className="flex-1 bg-emerald-100 text-emerald-700 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:bg-emerald-200 text-center"
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleViewDetails(experience.id)}
+                      className="flex-1 bg-emerald-100 text-emerald-700 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:bg-emerald-200 text-center text-sm"
                     >
                       View Details
-                    </Link>
-                    <Link 
-                      to={`/booking/${experience.id}`}
-                      className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-center"
+                    </button>
+                    <button
+                      onClick={() => handleBookNow(experience.id)}
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-center text-sm"
                     >
                       Book Now
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -351,7 +367,7 @@ const Experiences = () => {
 
           {/* CTA Section */}
           <div className="text-center mt-16">
-            <div className="bg-white rounded-3xl p-8 shadow-xl max-w-4xl mx-auto">
+            <div className="bg-white rounded-3xl p-8 shadow-xl max-w-4xl mx-auto border border-gray-200">
               <h3 className="text-3xl font-bold text-neutral-900 mb-4">
                 Ready for Your Kenyan Adventure?
               </h3>
