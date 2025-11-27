@@ -78,3 +78,4 @@ def seed_database():
     
     db.session.commit()
     print("✅ Seed data created successfully!")
+    
