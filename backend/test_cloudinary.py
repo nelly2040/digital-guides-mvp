@@ -25,3 +25,5 @@ try:
     print(f"Status: {result.get('status')}")
 except Exception as e:
     print(f"❌ Cloudinary connection failed: {e}")
+
+    
