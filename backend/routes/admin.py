@@ -66,3 +66,5 @@ def approve_guide(guide_id):
             'success': False,
             'error': str(e)
         }), 500
+    
+    
