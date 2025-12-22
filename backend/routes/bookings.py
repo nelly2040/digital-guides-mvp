@@ -121,3 +121,5 @@ def get_guide_bookings(current_user):
             'success': False,
             'error': str(e)
         }), 500
+    
+    
