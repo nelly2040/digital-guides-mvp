@@ -135,5 +135,3 @@ def profile(current_user):
             'is_approved': current_user.is_approved
         }
     }), 200
-
-    
