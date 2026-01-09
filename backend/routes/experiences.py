@@ -143,5 +143,3 @@ def get_guide_experiences(current_user):
             'success': False,
             'error': str(e)
         }), 500
-
-        
