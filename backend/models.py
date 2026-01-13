@@ -164,7 +164,3 @@ class Booking(db.Model):
             'experience': self.experience.to_dict() if self.experience else None,
             'experience_date': self.experience_date.to_dict() if self.experience_date else None
         }
-
-        
-
-        
